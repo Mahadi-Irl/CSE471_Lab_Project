@@ -2,6 +2,8 @@ from datetime import datetime
 from flaskapp import db, login_manager, app
 from flask_login import UserMixin
 from enum import Enum
+from sqlalchemy.orm import validates
+
 
 
 
@@ -53,8 +55,8 @@ class CategoryEnum(Enum):
     ELECTRONICS = 'AC Servicing'
     FASHION = 'Salon Care'
     HOME = 'Home Cleaning'
-    BOOKS = 'Plumbing and Stationary Services'
-    SPORTS = 'Home Shifting Services'
+    BOOKS = 'Stationary Services'
+    SPORTS = 'Practice Matches'
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -65,6 +67,7 @@ class Service(db.Model):
     ser_price = db.Column(db.Integer, nullable=False)
     ratings = db.Column(db.Integer, nullable = False)
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
+    
 
     def __repr__(self):
         return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
@@ -73,7 +76,7 @@ class Service(db.Model):
         if 0 <= value <= 5:
             self.ratings = value
         else:
-            raise ValueError("Ratings must be between 0 and 5")
+            raise ValueError("Ratings must be between 0 and 5") # must see if this works
 
 
 with app.app_context():
