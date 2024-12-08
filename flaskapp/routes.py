@@ -4,25 +4,11 @@ from flaskapp.forms import RegistrationForm, LoginForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService
 from flask_login import login_user, current_user, logout_user, login_required
 
-services = [
-    {
-        'title' : 'Cleaning House',
-        'service_providor' : 'Shakib',
-        'description' : 'Deep cleaning of the whole house',
-        'date_posted' : 'April 25, 2024'
-    },
-    {
-        'title' : 'Washing Toilet',
-        'service_providor' : 'Tamim',
-        'description' : 'Deep cleaning of the toilet',
-        'date_posted' : 'May 12, 2024'
-    }
-]
 
 @app.route("/")
 @app.route("/home")
 def home():
-    return render_template('home.html', services=services)
+    return render_template('home.html')
 
 
 @app.route("/about")
@@ -71,3 +57,11 @@ def logout():
 @login_required
 def account():
     return render_template('account.html', title='Account')
+
+
+
+
+
+# @app.route('/addser')
+# def addser():
+    
