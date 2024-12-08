@@ -1,6 +1,8 @@
 from datetime import datetime
-from flaskapp import db, login_manager
+from flaskapp import db, login_manager, app
 from flask_login import UserMixin
+from enum import Enum
+
 
 
 @login_manager.user_loader
@@ -47,12 +49,32 @@ class ServiceOrder(db.Model):
         return f"ServiceOrder('Order #{self.id}', 'Customer: {self.customer.username}', 'Service: {self.service.title}', 'Provider: {self.service_provider.name}', 'Status: {self.status}')"
 
 
+class CategoryEnum(Enum):
+    ELECTRONICS = 'AC Servicing'
+    FASHION = 'Salon Care'
+    HOME = 'Home Cleaning'
+    BOOKS = 'Plumbing and Stationary Services'
+    SPORTS = 'Home Shifting Services'
+
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ser_price = db.Column(db.Integer, nullable=False)
+    ratings = db.Column(db.Integer, nullable = False)
+    category = db.Column(db.Enum(CategoryEnum), nullable=False)
 
     def __repr__(self):
-        return f"Post('{self.title}', '{self.date_posted}')"
+        return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
+    
+    def set_ratings(self, value):
+        if 0 <= value <= 5:
+            self.ratings = value
+        else:
+            raise ValueError("Ratings must be between 0 and 5")
+
+
+with app.app_context():
+    db.create_all()
