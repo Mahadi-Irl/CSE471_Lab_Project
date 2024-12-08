@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>User Dashboard</h2>
+
+<!-- Service Requests Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>
+            <a href="{{ url_for('service_requests') }}">Service Requests</a>
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if service_requests %}
+            <ul class="list-group">
+                {% for request in service_requests %}
+                    <li class="list-group-item">
+                        <strong>{{ request.service.title }}</strong><br>
+                        <small class="text-muted">Requested on: {{ request.order_date.strftime('%B %d, %Y') }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No service requests found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Current Bookings Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>
+            <a href="{{ url_for('current_bookings') }}">Current Bookings</a>
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if current_bookings %}
+            <ul class="list-group">
+                {% for booking in current_bookings %}
+                    <li class="list-group-item">
+                        <strong>{{ booking.service.title }}</strong> with {{ booking.service_provider.username }}<br>
+                        <small class="text-muted">Scheduled for: {{ booking.order_date.strftime('%B %d, %Y') }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No current bookings found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Booking History Section -->
+<div class="card">
+    <div class="card-header">
+        <h4>
+            <a href="{{ url_for('booking_history') }}">Booking History</a>
+        </h4>
+    </div>
+    <div class="card-body">
+        {% if booking_history %}
+            <ul class="list-group">
+                {% for history in booking_history %}
+                    <li class="list-group-item">
+                        <strong>{{ history.service.title }}</strong> with {{ history.service_provider.username }}<br>
+                        <small class="text-muted">Completed on: {{ history.order_date.strftime('%B %d, %Y') }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No booking history found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+

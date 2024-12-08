@@ -2,6 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from flaskapp.models import User
+from wtforms import TextAreaField, DateField
 
 
 class RegistrationForm(FlaskForm):
@@ -26,3 +27,10 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Login')
+
+
+class AddServiceForm(FlaskForm):
+    title = StringField('Service Title', validators=[DataRequired()])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    date_requested = DateField('Date Requested', validators=[DataRequired()])
+    submit = SubmitField('Add Service')

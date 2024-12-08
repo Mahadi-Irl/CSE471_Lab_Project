@@ -3,17 +3,19 @@ from flaskapp import app, db, bcrypt
 from flaskapp.forms import RegistrationForm, LoginForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService
 from flask_login import login_user, current_user, logout_user, login_required
+from datetime import datetime
+from flaskapp.forms import AddServiceForm
 
 services = [
     {
         'title' : 'Cleaning House',
-        'service_providor' : 'Shakib',
+        'service_provider' : 'Shakib',
         'description' : 'Deep cleaning of the whole house',
         'date_posted' : 'April 25, 2024'
     },
     {
         'title' : 'Washing Toilet',
-        'service_providor' : 'Tamim',
+        'service_provider' : 'Tamim',
         'description' : 'Deep cleaning of the toilet',
         'date_posted' : 'May 12, 2024'
     }
@@ -71,3 +73,48 @@ def logout():
 @login_required
 def account():
     return render_template('account.html', title='Account')
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    service_requests = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Pending").all()
+    current_bookings = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Scheduled").all()
+    booking_history = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Completed").all()
+
+    return render_template('dashboard.html', service_requests=service_requests, current_bookings=current_bookings, booking_history=booking_history)
+
+
+@app.route('/add_service', methods=['GET', 'POST'])
+@login_required
+def add_service():
+    form = AddServiceForm()
+    if form.validate_on_submit():
+        new_service = ServiceOrder(
+            customer_id=current_user.id,
+            service_id=None,  # Update if there's a Service model
+            title=form.title.data,
+            description=form.description.data,
+            date_requested=form.date_requested.data,
+            status="Pending"
+        )
+        print(new_service)
+        db.session.add(new_service)
+        db.session.commit()
+        flash('Service added successfully!', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('add_service.html', form=form)
+
+
+
+@app.route('/service_requests')
+def service_requests():
+    return render_template('service_requests.html', services=services)
+
+@app.route('/current_bookings')
+def current_bookings():
+    return render_template('current_bookings.html', services=services)
+
+@app.route('/booking_history')
+def booking_history():
+    return render_template('booking_history.html', services=services)

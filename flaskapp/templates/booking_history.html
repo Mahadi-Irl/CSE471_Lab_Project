@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Booking History</h2>
+<div class="card">
+    <div class="card-body">
+        {% if services %}
+            <ul class="list-group">
+                {% for service in services %}
+                    <li class="list-group-item">
+                        <strong>{{ service.title }}</strong> completed by {{ service.service_provider }}<br>
+                        <p>{{ service.description }}</p>
+                        <small class="text-muted">Completed on: {{ service.date_posted }}</small>
+                        <p>status: completed</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No booking history found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

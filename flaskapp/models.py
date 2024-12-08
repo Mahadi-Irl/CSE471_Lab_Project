@@ -18,6 +18,17 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
+    
+    def get_active_orders(self):
+        """Returns a list of active (pending) service orders."""
+        return [order for order in self.orders if order.status == "Pending"]
+
+    def get_completed_orders(self):
+        """Returns a list of completed service orders."""
+        return [order for order in self.orders if order.status == "Completed"]
+
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
 class ServiceProvider(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,10 +53,10 @@ class ServiceOrder(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
+    
 
     def __repr__(self):
         return f"ServiceOrder('Order #{self.id}', 'Customer: {self.customer.username}', 'Service: {self.service.title}', 'Provider: {self.service_provider.name}', 'Status: {self.status}')"
-
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,3 +67,9 @@ class Service(db.Model):
 
     def __repr__(self):
         return f"Post('{self.title}', '{self.date_posted}')"
+    
+
+
+
+
+

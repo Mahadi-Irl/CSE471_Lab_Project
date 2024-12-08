@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Service Requests</h2>
+<div class="card">
+    <div class="card-body">
+        {% if services %}
+            <ul class="list-group">
+                {% for service in services %}
+                    <li class="list-group-item">
+                        <strong>{{ service.title }}</strong> by {{ service.service_provider }}<br>
+                        <p>{{ service.description }}</p>
+                        <small class="text-muted">Requested on: {{ service.date_posted }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted">No service requests found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
