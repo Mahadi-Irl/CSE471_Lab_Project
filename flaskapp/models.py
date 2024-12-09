@@ -1,5 +1,6 @@
 from datetime import datetime
 from flaskapp import db, login_manager, app
+
 from flask_login import UserMixin
 from enum import Enum
 from sqlalchemy.orm import validates
@@ -81,7 +82,3 @@ class Service(db.Model):
 
 
   
-
-with app.app_context():
-    db.create_all()
-    
