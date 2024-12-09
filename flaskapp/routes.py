@@ -3,13 +3,9 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-<<<<<<< HEAD
-from flaskapp.forms import RegistrationForm, LoginForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
-=======
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService
->>>>>>> 3982704a96ec819e0f89c9bf4169dc981f3d13fa
+
 from flask_login import login_user, current_user, logout_user, login_required
 from enum import Enum
 from sqlalchemy import or_
@@ -207,16 +203,6 @@ def save_picture(form_picture):
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-<<<<<<< HEAD
-    return render_template('account.html', title='Account')
-
-
-
-
-
-
-    
-=======
     form = UpdateAccountForm()
     if form.validate_on_submit():
         if form.picture.data:
@@ -232,4 +218,3 @@ def account():
         form.email.data = current_user.email
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
->>>>>>> 3982704a96ec819e0f89c9bf4169dc981f3d13fa
