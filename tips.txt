@@ -14,9 +14,7 @@ python run.py
 
 
 ## database handling
-python
-from flaskapp import app, db
-db.create_all()
+python create_db.py
 
 
 
