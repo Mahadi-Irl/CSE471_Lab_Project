@@ -80,10 +80,4 @@ class Service(db.Model):
             raise ValueError("Ratings must be between 0 and 5") # must see if this works
 
 
-<<<<<<< HEAD
   
-=======
-with app.app_context():
-    db.create_all()
-    db.reflect()
->>>>>>> 6186ab0a4d96f598d8aa2b09095c9482e1eeb091
