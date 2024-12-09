@@ -59,7 +59,9 @@
               {% endfor %}
             {% endif %}
           {% endwith %}
+          {% block search %} {% endblock %}
           {% block content %}{% endblock %}
+          {% block result %}{% endblock %}
         </div>
         <div class="col-md-4">
           <div class="content-section">

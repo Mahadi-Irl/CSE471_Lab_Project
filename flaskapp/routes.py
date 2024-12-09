@@ -4,6 +4,7 @@ from flaskapp.forms import RegistrationForm, LoginForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
 from flask_login import login_user, current_user, logout_user, login_required
 from enum import Enum
+from sqlalchemy import or_
 
 
 @app.route("/")
@@ -130,6 +131,44 @@ def become_service_provider():
         flash('You are now a service provider!', 'success')
         return redirect(url_for('home')) 
 
+
+
+
+#search
+@app.route('/search_result', methods=['GET'])
+def search_result():
+    query = request.args.get('query', '').split()
+    min_price = request.args.get('min_price', type=float)  
+    max_price = request.args.get('max_price', type=float)  
+    rating = request.args.get('rating', type=int) or 0   
+    
+    results = Service.query 
+    
+    if query:
+        filters = [Service.title.ilike(f"%{word}%") for word in query]
+        results = results.filter(or_(*filters))
+
+    if min_price is not None:
+        results = results.filter(Service.ser_price >= min_price)
+
+    if max_price is not None:
+        results = results.filter(Service.ser_price <= max_price)
+
+    if rating >= 0 and rating <=5:
+        results = results.filter(Service.ratings >= rating)
+
+    # Apply sorting after all filters
+    results = results.order_by(Service.ser_price.asc(), Service.ratings.desc()).all()
+
+        
+        
+
+
+
+
+    
+    return render_template('search_results.html', result=results)
+        
 
 
 
