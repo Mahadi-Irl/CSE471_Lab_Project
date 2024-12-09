@@ -67,6 +67,7 @@ class Service(db.Model):
     ser_price = db.Column(db.Integer, nullable=False)
     ratings = db.Column(db.Integer, nullable = False)
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
+    duration = db.Column(db.Integer, nullable = False)
     
 
     def __repr__(self):
@@ -79,5 +80,8 @@ class Service(db.Model):
             raise ValueError("Ratings must be between 0 and 5") # must see if this works
 
 
+  
+
 with app.app_context():
     db.create_all()
+    
