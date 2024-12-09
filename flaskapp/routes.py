@@ -3,6 +3,7 @@ from flaskapp import app, db, bcrypt
 from flaskapp.forms import RegistrationForm, LoginForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
 from flask_login import login_user, current_user, logout_user, login_required
+from enum import Enum
 
 
 @app.route("/")
@@ -77,6 +78,57 @@ def login():
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
     return render_template('login.html', title='Login', form=form)
+
+@app.route('/join')
+def join():
+    return redirect(url_for('containform'))
+
+@app.route("/containform")
+def containform():
+    return render_template("createServiceProviderprofileform.html")
+
+@app.route('/become_service_provider', methods=['GET', 'POST'])
+@login_required
+def become_service_provider():
+    if request.method == 'POST':
+        nid = request.form.get('nid')
+        bio = request.form.get('bio')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        ser_price = request.form.get('ser_price')
+        category = request.form.get('category')  
+        
+        
+        if not nid or not bio or not title or not description or not ser_price or not category:
+            flash('All fields are required.', 'danger')
+            return redirect(url_for('become_service_provider'))
+        
+        # Create and save the service provider
+        service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
+        db.session.add(service_provider)
+        db.session.commit()
+
+        # Create and save the service with the selected category
+        service = Service(
+            title=title, 
+            description=description, 
+            ser_price=ser_price, 
+            user_id=current_user.id, 
+            provider_id=current_user.id,
+            ratings = 1,
+            category=category  # Store the selected category
+        )
+        db.session.add(service)
+        db.session.commit()
+
+        flash('You are now a service provider!', 'success')
+        return redirect(url_for('home')) 
+
+
+
+
+
+    
 
 
 @app.route("/logout")
