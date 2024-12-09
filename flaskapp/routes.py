@@ -94,6 +94,5 @@ def account():
 
 
 
-# @app.route('/addser')
-# def addser():
+
     
