@@ -104,9 +104,12 @@ def become_service_provider():
             return redirect(url_for('become_service_provider'))
         
         # Create and save the service provider
-        service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
-        db.session.add(service_provider)
-        db.session.commit()
+        
+        service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id)
+        if ( service_provider == None):
+            service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
+            db.session.add(service_provider)
+            db.session.commit()
 
         # Create and save the service with the selected category
         service = Service(
