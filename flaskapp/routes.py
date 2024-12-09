@@ -3,34 +3,59 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
+<<<<<<< HEAD
+from flaskapp.forms import RegistrationForm, LoginForm
+from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
+=======
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService
+>>>>>>> 3982704a96ec819e0f89c9bf4169dc981f3d13fa
 from flask_login import login_user, current_user, logout_user, login_required
+from enum import Enum
+from sqlalchemy import or_
 
-services = [
-    {
-        'title' : 'Cleaning House',
-        'service_providor' : 'Shakib',
-        'description' : 'Deep cleaning of the whole house',
-        'date_posted' : 'April 25, 2024'
-    },
-    {
-        'title' : 'Washing Toilet',
-        'service_providor' : 'Tamim',
-        'description' : 'Deep cleaning of the toilet',
-        'date_posted' : 'May 12, 2024'
-    }
-]
 
 @app.route("/")
 @app.route("/home")
 def home():
-    return render_template('home.html', services=services)
+    services_data = getservices()  # Fetch services grouped by categories
+    servicesList = []
+
+    # Flatten the data structure to pass as a list of services
+    for category, service in services_data.items():
+        service["category"] = category  # Add category information to each service
+        servicesList.append(service)
+
+    return render_template('home.html', services = servicesList)
 
 
 @app.route("/about")
 def about():
     return render_template('about.html', title='About')
+
+
+def getservices():
+    categories = db.session.query(Service.category).distinct().all()
+    obj = {}
+    for cat in categories:
+        category = cat[0]  # Extract the Enum value from the tuple
+        # Fetch the top-rated service for the current category
+        top_service = (
+            db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
+        )
+        if top_service:
+            obj[category.value] = { 
+                "id": top_service.id,
+                "title": top_service.title,
+                "description": top_service.description,
+                "price": top_service.ser_price,
+                "ratings": top_service.ratings,
+                "duration": top_service.duration,
+            }
+    return obj
+    
+    
+
 
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -63,6 +88,101 @@ def login():
             flash('Login Unsuccessful. Please check email and password', 'danger')
     return render_template('login.html', title='Login', form=form)
 
+@app.route('/join')
+def join():
+    return redirect(url_for('containform'))
+
+@app.route("/containform")
+def containform():
+    return render_template("createServiceProviderprofileform.html")
+
+@app.route('/become_service_provider', methods=['GET', 'POST'])
+@login_required
+def become_service_provider():
+    if request.method == 'POST':
+        nid = request.form.get('nid')
+        bio = request.form.get('bio')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        ser_price = request.form.get('ser_price')
+        category = request.form.get('category') 
+        duration = request.form.get('duration') 
+        
+        
+        if not nid or not bio or not title or not description or not ser_price or not category:
+            flash('All fields are required.', 'danger')
+            return redirect(url_for('become_service_provider'))
+        
+        # Create and save the service provider
+        
+        service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
+        
+        if ( service_provider == None):
+            service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
+            db.session.add(service_provider)
+            db.session.commit()
+
+        # Create and save the service with the selected category
+        service = Service(
+            title=title, 
+            description=description, 
+            ser_price=ser_price, 
+            user_id=current_user.id, 
+            provider_id=current_user.id,
+            ratings = 1,
+            category=category,  # Store the selected category
+            duration = duration,
+        )
+        db.session.add(service)
+        db.session.commit()
+
+        flash('You are now a service provider!', 'success')
+        return redirect(url_for('home')) 
+
+
+
+
+#search
+@app.route('/search_result', methods=['GET'])
+def search_result():
+    query = request.args.get('query', '').split()
+    min_price = request.args.get('min_price', type=float)  
+    max_price = request.args.get('max_price', type=float)  
+    rating = request.args.get('rating', type=int) or 0   
+    
+    results = Service.query 
+    
+    if query:
+        filters = [Service.title.ilike(f"%{word}%") for word in query]
+        results = results.filter(or_(*filters))
+
+    if min_price is not None:
+        results = results.filter(Service.ser_price >= min_price)
+
+    if max_price is not None:
+        results = results.filter(Service.ser_price <= max_price)
+
+    if rating >= 0 and rating <=5:
+        results = results.filter(Service.ratings >= rating)
+
+    # Apply sorting after all filters
+    results = results.order_by(Service.ser_price.asc(), Service.ratings.desc()).all()
+
+        
+        
+
+
+
+
+    
+    return render_template('search_results.html', result=results)
+        
+
+
+
+
+    
+
 
 @app.route("/logout")
 def logout():
@@ -87,6 +207,16 @@ def save_picture(form_picture):
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
+<<<<<<< HEAD
+    return render_template('account.html', title='Account')
+
+
+
+
+
+
+    
+=======
     form = UpdateAccountForm()
     if form.validate_on_submit():
         if form.picture.data:
@@ -102,3 +232,4 @@ def account():
         form.email.data = current_user.email
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
+>>>>>>> 3982704a96ec819e0f89c9bf4169dc981f3d13fa

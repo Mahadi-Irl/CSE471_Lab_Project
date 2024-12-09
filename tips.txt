@@ -13,7 +13,8 @@ To run the webapp
 python run.py
 
 
-
+## database handling
+python create_db.py
 
 
 
@@ -30,7 +31,7 @@ with app.app_context():
 To generate requirements.txt File
 pip freeze > requirements.txt
 
-If you want to remove all requrements at once then
+If you want to remove all requirements at once then
 pip uninstall -r requirements.txt -y
 
 To activate the 
