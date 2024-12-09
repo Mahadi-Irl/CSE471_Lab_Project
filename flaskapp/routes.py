@@ -96,7 +96,8 @@ def become_service_provider():
         title = request.form.get('title')
         description = request.form.get('description')
         ser_price = request.form.get('ser_price')
-        category = request.form.get('category')  
+        category = request.form.get('category') 
+        duration = request.form.get('duration') 
         
         
         if not nid or not bio or not title or not description or not ser_price or not category:
@@ -105,7 +106,8 @@ def become_service_provider():
         
         # Create and save the service provider
         
-        service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id)
+        service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
+        
         if ( service_provider == None):
             service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
             db.session.add(service_provider)
@@ -120,7 +122,7 @@ def become_service_provider():
             provider_id=current_user.id,
             ratings = 1,
             category=category,  # Store the selected category
-            duration = 2
+            duration = duration,
         )
         db.session.add(service)
         db.session.commit()
