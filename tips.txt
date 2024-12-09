@@ -21,6 +21,13 @@ python create_db.py
 
 # extras
 
+To create All Tables Using Flask App Context
+
+python
+from flaskapp import app, db
+with app.app_context():
+    db.create_all()
+
 To generate requirements.txt File
 pip freeze > requirements.txt
 
