@@ -116,7 +116,8 @@ def become_service_provider():
             user_id=current_user.id, 
             provider_id=current_user.id,
             ratings = 1,
-            category=category  # Store the selected category
+            category=category,  # Store the selected category
+            duration = 2
         )
         db.session.add(service)
         db.session.commit()
