@@ -1,22 +1,30 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Booking History</h2>
-<div class="card">
+
+<!-- Current Bookings Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>
+            <a href="{{ url_for('current_bookings') }}">Current Bookings</a>
+        </h4>
+    </div>
     <div class="card-body">
-        {% if services %}
+        {% if current_bookings %}
             <ul class="list-group">
-                {% for service in services %}
+                {% for booking in current_bookings %}
                     <li class="list-group-item">
-                        <strong>{{ service.title }}</strong> completed by {{ service.service_provider }}<br>
-                        <p>{{ service.description }}</p>
-                        <small class="text-muted">Completed on: {{ service.date_posted }}</small>
-                        <p>status: completed</p>
+                        <strong>{{ booking.service.title }}</strong> with {{ booking.service_provider.username }}<br>
+                        <small class="text-muted">Scheduled for: {{ booking.order_date.strftime('%B %d, %Y') }}</small>
                     </li>
                 {% endfor %}
             </ul>
         {% else %}
-            <p class="text-muted">No booking history found.</p>
+            <p class="text-muted">No current bookings found.</p>
         {% endif %}
     </div>
 </div>
+
+
 {% endblock %}
+
+

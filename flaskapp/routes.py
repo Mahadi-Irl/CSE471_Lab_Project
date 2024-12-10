@@ -109,12 +109,16 @@ def add_service():
 
 @app.route('/service_requests')
 def service_requests():
-    return render_template('service_requests.html', services=services)
+    service_requests = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Pending").all()
+    return render_template('service_requests.html', service_requests=service_requests)
 
 @app.route('/current_bookings')
 def current_bookings():
-    return render_template('current_bookings.html', services=services)
+    current_bookings = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Scheduled").all()
+    return render_template('current_bookings.html', current_bookings=current_bookings)
 
 @app.route('/booking_history')
 def booking_history():
-    return render_template('booking_history.html', services=services)
+    booking_history = ServiceOrder.query.filter_by(customer_id=current_user.id, status="Completed").all()
+    return render_template('booking_history.html', booking_history=booking_history)
+

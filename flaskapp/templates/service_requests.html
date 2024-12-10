@@ -1,15 +1,21 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Service Requests</h2>
-<div class="card">
+
+
+<!-- Service Requests Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h4>
+            <a href="{{ url_for('service_requests') }}">Service Requests</a>
+        </h4>
+    </div>
     <div class="card-body">
-        {% if services %}
+        {% if service_requests %}
             <ul class="list-group">
-                {% for service in services %}
+                {% for request in service_requests %}
                     <li class="list-group-item">
-                        <strong>{{ service.title }}</strong> by {{ service.service_provider }}<br>
-                        <p>{{ service.description }}</p>
-                        <small class="text-muted">Requested on: {{ service.date_posted }}</small>
+                        <strong>{{ request.service.title }}</strong><br>
+                        <small class="text-muted">Requested on: {{ request.order_date.strftime('%B %d, %Y') }}</small>
                     </li>
                 {% endfor %}
             </ul>
@@ -18,4 +24,8 @@
         {% endif %}
     </div>
 </div>
+
+
 {% endblock %}
+
+
