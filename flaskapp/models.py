@@ -53,10 +53,14 @@ class ServiceOrder(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
-    
+
+    # Relationships
+    service = db.relationship('Service', backref='orders', lazy=True)
+    service_provider = db.relationship('ServiceProvider', backref='orders', lazy=True)
 
     def __repr__(self):
-        return f"ServiceOrder('Order #{self.id}', 'Customer: {self.customer.username}', 'Service: {self.service.title}', 'Provider: {self.service_provider.name}', 'Status: {self.status}')"
+        return f"ServiceOrder('Order #{self.id}', 'Status: {self.status}')"
+
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
