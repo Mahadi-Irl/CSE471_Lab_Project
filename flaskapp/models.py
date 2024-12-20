@@ -1,11 +1,8 @@
 from datetime import datetime
 from flaskapp import db, login_manager, app
-
 from flask_login import UserMixin
 from enum import Enum
 from sqlalchemy.orm import validates
-
-
 
 
 @login_manager.user_loader
@@ -24,6 +21,7 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
+
 class ServiceProvider(db.Model):
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     nid = db.Column(db.String(50), unique=True, nullable=False)
@@ -33,10 +31,12 @@ class ServiceProvider(db.Model):
     def __repr__(self):
         return f"ServiceProvider('{self.nid}', '{self.bio}')"
 
+
 class ServiceProviderService(db.Model):
     __tablename__ = 'service_provider_service'
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), primary_key=True)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), primary_key=True)
+
 
 class ServiceOrder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +45,7 @@ class ServiceOrder(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
+    service = db.relationship('Service', backref='orders', lazy=True)
 
     def __repr__(self):
         return f"ServiceOrder('Order #{self.id}', 'Customer: {self.customer.username}', 'Service: {self.service.title}', 'Provider: {self.service_provider.name}', 'Status: {self.status}')"
@@ -56,6 +57,7 @@ class CategoryEnum(Enum):
     HOME = 'Home Cleaning'
     BOOKS = 'Stationary Services'
     SPORTS = 'Practice Matches'
+
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -69,7 +71,6 @@ class Service(db.Model):
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
     duration = db.Column(db.Integer, nullable = False)
     
-
     def __repr__(self):
         return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
     
