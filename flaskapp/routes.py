@@ -5,7 +5,6 @@ from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
 from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
-
 from flask_login import login_user, current_user, logout_user, login_required
 from enum import Enum
 from sqlalchemy import or_
@@ -51,9 +50,6 @@ def getservices():
     return obj
     
     
-
-
-
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -136,8 +132,6 @@ def become_service_provider():
         return redirect(url_for('home')) 
 
 
-
-
 #search
 @app.route('/search_result', methods=['GET'])
 def search_result():
@@ -164,20 +158,8 @@ def search_result():
     # Apply sorting after all filters
     results = results.order_by(Service.ser_price.asc(), Service.ratings.desc()).all()
 
-        
-        
-
-
-
-
-    
     return render_template('search_results.html', result=results)
         
-
-
-
-
-    
 
 
 @app.route("/logout")
@@ -198,6 +180,30 @@ def save_picture(form_picture):
     i.save(picture_path)
 
     return picture_fn
+
+
+@app.route('/alluserorders')
+@login_required
+def alluserorders():
+    orders = ServiceOrder.query.filter_by(customer_id=current_user.id).all()
+    return render_template('alluserorders.html', orders=orders)
+
+
+
+
+@app.route('/userorderdetails/<int:order_id>')
+@login_required
+def userorderdetails(order_id):
+    # Fetch the specific order belonging to the logged-in user
+    order = ServiceOrder.query.filter_by(id=order_id, customer_id=current_user.id).first()
+
+    if not order:
+        flash('Order not found', 'danger')
+        return redirect(url_for('alluserorders'))
+
+    return render_template('userorderdetails.html', details=order)
+
+
 
 
 @app.route("/account", methods=['GET', 'POST'])
