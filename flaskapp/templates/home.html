@@ -1,51 +1,54 @@
-{% extends "layout.html" %}
-
-{% block search %} 
+{% extends "layout.html" %} {% block search %}
 
 <form action="{{ url_for('search_result') }}" method="GET">
   <div>
     <label for="query">Search:</label>
-    <input type="text" id="query" name="query" placeholder="Enter service name">
+    <input
+      type="text"
+      id="query"
+      name="query"
+      placeholder="Enter service name"
+    />
   </div>
-  
+
   <label for="min_price">Min Price:</label>
-  <input type="number" id="min_price" name="min_price" step="0.01">
-  <br>
+  <input type="number" id="min_price" name="min_price" step="0.01" />
+  <br />
 
   <label for="max_price">Max Price:</label>
-  <input type="number" id="max_price" name="max_price" step="0.01">
-  <br>
+  <input type="number" id="max_price" name="max_price" step="0.01" />
+  <br />
 
   <label for="rating">Minimum Rating:</label>
-    <select id="rating" name="rating">
-        <option value="">Select Rating</option>
-        <option value=0>0+</option>
-        <option value=1>1+</option>
-        <option value=2>2+</option>
-        <option value=3>3+</option>
-        <option value=4>4+</option>
-        <option value=5>5</option>
-    </select>
+  <select id="rating" name="rating">
+    <option value="">Select Rating</option>
+    <option value="0">0+</option>
+    <option value="1">1+</option>
+    <option value="2">2+</option>
+    <option value="3">3+</option>
+    <option value="4">4+</option>
+    <option value="5">5</option>
+  </select>
 
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 
+{% endblock search %} {% block content %} {% for service in services %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ service.provider }}</a>
+      <small class="text-muted">{{ service.date_posted }}</small>
+    </div>
+    <h2>
+      <a
+        class="article-title"
+        href="{{ url_for('servicedetails', service_id = service.id) }}"
+        >{{ service.title }}</a
+      >
+    </h2>
+    <p class="article-content">{{ service.description }}</p>
+  </div>
+</article>
 
-
-{% endblock search %}
-{% block content %}
-    {% for service in services %}
-        <article class="media content-section">
-          <div class="media-body">
-            <div class="article-metadata">
-              <a class="mr-2" href="#">{{ service.provider }}</a>
-              <small class="text-muted">{{ service.date_posted }}</small>
-            </div>
-            <h2><a class="article-title" href="{{ url_for('servicedetails', service_id = service.id) }}">{{ service.title }}</a></h2>
-            <p class="article-content">{{ service.description }}</p>
-          </div>
-        </article>
-        
-    {% endfor %}
-    
-{% endblock content %}
+{% endfor %} {% endblock content %}

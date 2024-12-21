@@ -53,7 +53,8 @@ def getservices():
 @app.route('/servicedetails/<int:service_id>')
 def servicedetails(service_id):
     services = Service.query.filter_by(id=service_id).first()
-    return render_template('service_details.html', details=services)
+    ref = request.referrer
+    return render_template('service_details.html', details=services, referrer=ref)
     
 @app.route("/register", methods=['GET', 'POST'])
 def register():

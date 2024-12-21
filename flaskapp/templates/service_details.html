@@ -5,6 +5,6 @@
         <p><strong>Price:</strong> ${{ details.ser_price }}</p>
         <p><strong>Date:</strong> {{ details.date_posted.strftime('%Y-%m-%d') }}</p>
         <p><strong>Description:</strong> {{ details.description }}</p>
-        <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+        <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
     </div>
 {% endblock content %}
