@@ -13,12 +13,12 @@ from sqlalchemy import or_
 @app.route("/")
 @app.route("/home")
 def home():
-    services_data = getservices()  # Fetch services grouped by categories
+    services_data = getservices()  
     servicesList = []
 
-    # Flatten the data structure to pass as a list of services
+    
     for category, service in services_data.items():
-        service["category"] = category  # Add category information to each service
+        service["category"] = category  
         servicesList.append(service)
 
     return render_template('home.html', services = servicesList)
@@ -48,7 +48,12 @@ def getservices():
                 "duration": top_service.duration,
             }
     return obj
-    
+
+
+@app.route('/servicedetails/<int:service_id>')
+def servicedetails(service_id):
+    services = Service.query.filter_by(id=service_id).first()
+    return render_template('service_details.html', details=services)
     
 @app.route("/register", methods=['GET', 'POST'])
 def register():
@@ -224,3 +229,6 @@ def account():
         form.email.data = current_user.email
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
+
+
+

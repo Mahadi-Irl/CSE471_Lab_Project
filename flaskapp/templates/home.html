@@ -41,7 +41,7 @@
               <a class="mr-2" href="#">{{ service.provider }}</a>
               <small class="text-muted">{{ service.date_posted }}</small>
             </div>
-            <h2><a class="article-title" href="#">{{ service.title }}</a></h2>
+            <h2><a class="article-title" href="{{ url_for('servicedetails', service_id = service.id) }}">{{ service.title }}</a></h2>
             <p class="article-content">{{ service.description }}</p>
           </div>
         </article>
