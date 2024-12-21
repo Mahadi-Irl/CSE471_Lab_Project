@@ -64,9 +64,8 @@ class Service(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # User who created the service
-    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  # Linked service provider
-    ser_price = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
+    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  
     ratings = db.Column(db.Integer, nullable=False)
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
     duration = db.Column(db.Integer, nullable = False)
@@ -81,4 +80,31 @@ class Service(db.Model):
             raise ValueError("Ratings must be between 0 and 5") # must see if this works
 
 
-  
+class OrderStatus(Enum):
+    accepted = 'accepted'
+    on_the_way = 'on the way'
+    reached = 'reached'
+    completed = 'completed'
+
+
+class NotificationStatus(Enum):
+    not_viewed = 'not viewed'
+    viewed = 'viewed'
+    rejected = 'rejected'
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_loc = db.Column(db.String(200), nullable=False)  
+    order_datetime = db.Column(db.DateTime, default=datetime.utcnow)  
+    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.accepted)  
+    review = db.Column(db.String(500), nullable=True)  
+    rate = db.Column(db.Float, nullable=True)  
+    price = db.Column(db.Float, nullable=False) 
+    notifications = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.not_viewed) 
+    ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
+    
+
+    def __repr__(self):
+        return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status}, Notifications: {self.notifications}>'
