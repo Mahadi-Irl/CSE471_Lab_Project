@@ -82,22 +82,24 @@ class Service(db.Model):
 
 
 class OrderStatus(Enum):
+    pending = 'pending'
     accepted = 'accepted'
     on_the_way = 'on the way'
     reached = 'reached'
     completed = 'completed'
+    rejected = 'rejected'
 
 
 class NotificationStatus(Enum):
     not_viewed = 'not viewed'
     viewed = 'viewed'
-    rejected = 'rejected'
+    
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_loc = db.Column(db.String(200), nullable=False)  
     order_datetime = db.Column(db.DateTime, default=datetime.utcnow)  
-    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.accepted)  
+    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.pending)  
     review = db.Column(db.String(500), nullable=True)  
     rate = db.Column(db.Float, nullable=True)  
     price = db.Column(db.Float, nullable=False) 
