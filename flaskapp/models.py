@@ -69,6 +69,7 @@ class Service(db.Model):
     ratings = db.Column(db.Integer, nullable=False)
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
     duration = db.Column(db.Integer, nullable = False)
+    ser_price = db.Column(db.Float, nullable=False) 
     
     def __repr__(self):
         return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
