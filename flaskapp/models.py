@@ -82,6 +82,7 @@ class Service(db.Model):
 
 
 class OrderStatus(Enum):
+    pending = 'pending'
     accepted = 'accepted'
     on_the_way = 'on the way'
     reached = 'reached'
