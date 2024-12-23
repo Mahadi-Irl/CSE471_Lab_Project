@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="content-section">
+        <h2>{{ order.order_loc }}</h2>
+        <p><strong>Price:</strong> ${{ order.price }}</p>
+        
+        <p><strong>Description:</strong> {{ order.order_loc  }}</p>
+        <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
+
+        <form method="POST" action="{{ url_for('mark_ontheway', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary">On the Way</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('mark_reached', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary">Reached</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('mark_completed', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary">Completed</button>
+        </form>
+
+        
+        
+    </div>
+{% endblock content %}

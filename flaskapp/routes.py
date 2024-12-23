@@ -3,7 +3,7 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
+from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, Order ,ServiceProviderService, CategoryEnum, OrderStatus
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from enum import Enum
@@ -233,3 +233,77 @@ def account():
 
 
 
+@app.route("/accepted_orders", methods=['GET', 'POST'], endpoint='accepted_orders')
+@login_required
+def view_orders():
+    service_provider = ServiceProvider.query.filter_by(id=current_user.id).first()
+    if not service_provider:
+        return "Access Denied: Not a Service Provider", 403
+
+    # Query for accepted and ongoing orders with related service and customer information
+    accepted_orders = db.session.query(Order, Service, User).join(
+        Service, Order.ser_id == Service.id
+    ).join(
+        User, Order.customer_id == User.id
+    ).filter(
+        Order.service_provider_id == service_provider.id,
+        Order.status.in_([OrderStatus.accepted, OrderStatus.on_the_way, OrderStatus.reached])
+    ).all()
+
+    # Query for completed orders with related service and customer information
+    completed_orders = db.session.query(Order, Service, User).join(
+        Service, Order.ser_id == Service.id
+    ).join(
+        User, Order.customer_id == User.id
+    ).filter(
+        Order.service_provider_id == service_provider.id,
+        Order.status == OrderStatus.completed
+    ).all()
+
+    return render_template(
+        'acceptedorders.html',
+        accepted_orders=accepted_orders,
+        completed_orders=completed_orders
+    )
+
+    
+@app.route('/order_details/<int:order_id>')
+def order_details(order_id):
+    
+    order = Order.query.get_or_404(order_id)
+    ref = request.referrer
+    return render_template('ordersdetails.html', order=order, referrer=ref)
+
+@app.route('/mark_reached/<int:order_id>', methods=['POST'])
+@login_required
+def mark_reached(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.status == 'reached':
+        flash('This order is already marked as "Reached".', 'warning')
+    else:
+        order.status = 'reached'
+        db.session.commit()
+        flash('Order status updated to "Reached".', 'success')
+
+    return redirect(url_for('accepted_orders'))
+
+@app.route('/mark_ontheway/<int:order_id>', methods=['POST'])
+@login_required
+def mark_ontheway(order_id):  
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = 'on the way'
+    db.session.commit()
+    flash('Order status updated to "On the way".', 'success')
+    return redirect(url_for('accepted_orders'))
+
+@app.route('/mark_completed/<int:order_id>', methods=['POST'])
+@login_required
+def mark_completed(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = 'completed'
+    db.session.commit()
+    flash('Order status updated to "on the way".', 'success')
+    return redirect(url_for('accepted_orders'))

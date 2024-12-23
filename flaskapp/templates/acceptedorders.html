@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Orders</h1>
+
+    <h2>Ongoing Orders</h2>
+    {% if accepted_orders %}
+        <ul class="list-group mb-4">
+            {% for order, service, customer in accepted_orders %}
+                <li class="list-group-item">
+                    <strong>Service Title:</strong>
+                    <a href="{{ url_for('order_details', order_id=order.id) }}">
+                        {{ service.title }}
+                    </a>
+                    <br>
+                    <strong>Service Description:</strong> {{ service.description }} <br>
+                    <strong>Customer Name:</strong> {{ customer.username }} <br>
+                    <strong>Order Location:</strong> {{ order.order_loc }} <br>
+                    <strong>Status:</strong> {{ order.status.value }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No Ongoing orders at the moment.</p>
+    {% endif %}
+
+    <h2>Completed Orders</h2>
+    {% if completed_orders %}
+        <ul class="list-group">
+            {% for order, service, customer in completed_orders %}
+                <li class="list-group-item">
+                    <strong>Service Title:</strong>
+                    <a href="{{ url_for('order_details', order_id=order.id) }}">
+                        {{ service.title }}
+                    </a>
+                    <br>
+                    <strong>Service Description:</strong> {{ service.description }} <br>
+                    <strong>Customer Name:</strong> {{ customer.username }} <br>
+                    <strong>Order Location:</strong> {{ order.order_loc }} <br>
+                    <strong>Status:</strong> {{ order.status.value }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">No completed orders at the moment.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
