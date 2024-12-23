@@ -293,7 +293,7 @@ def mark_reached(order_id):
     if order.status == 'reached':
         flash('This order is already marked as "Reached".', 'warning')
     else:
-        order.status = 'reached'
+        order.status = OrderStatus.reached
         db.session.commit()
         flash('Order status updated to "Reached".', 'success')
 
@@ -304,7 +304,7 @@ def mark_reached(order_id):
 def mark_ontheway(order_id):  
     order = Order.query.get_or_404(order_id)
     
-    order.status = 'on the way'
+    order.status = OrderStatus.on_the_way 
     db.session.commit()
     flash('Order status updated to "On the way".', 'success')
     return redirect(url_for('accepted_orders'))
@@ -314,7 +314,7 @@ def mark_ontheway(order_id):
 def mark_completed(order_id):
     order = Order.query.get_or_404(order_id)
     
-    order.status = 'completed'
+    order.status = OrderStatus.completed
     db.session.commit()
     flash('Order status updated to "on the way".', 'success')
     return redirect(url_for('accepted_orders'))
