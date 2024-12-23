@@ -3,10 +3,9 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
+from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum, Order
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
-from enum import Enum
 from sqlalchemy import or_
 
 
@@ -33,8 +32,8 @@ def getservices():
     categories = db.session.query(Service.category).distinct().all()
     obj = {}
     for cat in categories:
-        category = cat[0]  # Extract the Enum value from the tuple
-        # Fetch the top-rated service for the current category
+        category = cat[0] 
+        
         top_service = (
             db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
         )
@@ -111,7 +110,7 @@ def become_service_provider():
             flash('All fields are required.', 'danger')
             return redirect(url_for('become_service_provider'))
         
-        # Create and save the service provider
+        
         
         service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
         
@@ -120,7 +119,7 @@ def become_service_provider():
             db.session.add(service_provider)
             db.session.commit()
 
-        # Create and save the service with the selected category
+        
         service = Service(
             title=title, 
             description=description, 
@@ -128,7 +127,7 @@ def become_service_provider():
             user_id=current_user.id, 
             provider_id=current_user.id,
             ratings = 1,
-            category=category,  # Store the selected category
+            category=category, 
             duration = duration,
         )
         db.session.add(service)
@@ -200,7 +199,7 @@ def alluserorders():
 @app.route('/userorderdetails/<int:order_id>')
 @login_required
 def userorderdetails(order_id):
-    # Fetch the specific order belonging to the logged-in user
+    
     order = ServiceOrder.query.filter_by(id=order_id, customer_id=current_user.id).first()
 
     if not order:
@@ -233,3 +232,38 @@ def account():
 
 
 
+
+
+
+@app.route('/placeorder/<int:service_id>')
+@login_required
+def placeorder(service_id):
+    services = Service.query.filter_by(id=service_id).first()
+    ref = request.referrer
+    return render_template('orderform.html', details=services, referrer=ref)
+
+
+
+@app.route('/submitOrder', methods = ['POST'])
+def postorder():
+    if request.method == 'POST':
+        location = request.form.get('location')
+        date_time = request.form.get('datetime')
+        price = request.form.get('price', type=float)
+        service_id = request.form.get('service_id', type=int)
+        service_provider_id = request.form.get('service_provider_id', type=int)
+
+    
+    if not location or not date_time or not price:
+        flash("All fields are required!", "danger")
+        return redirect('/submitOrder')
+
+   
+    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id)
+
+    # db.session.add(new_order)
+    # db.session.commit()
+
+    flash("Order submitted successfully!", "success")
+    return redirect(url_for('alluserorders'))
+    
