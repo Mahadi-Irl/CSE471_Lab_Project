@@ -1,14 +1,15 @@
 import os
 import secrets
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, Service, ServiceProviderService, CategoryEnum, Order
+from flaskapp.models import User, ServiceProvider, Service, ServiceProviderService, CategoryEnum, Order, Complaint
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
 from sqlalchemy.orm import joinedload
+from functools import wraps
 
 
 
@@ -24,6 +25,71 @@ def home():
         servicesList.append(service)
 
     return render_template('home.html', services = servicesList)
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin")
+@login_required
+@admin_required
+def admin_dashboard():
+    users = User.query.all()
+    services = Service.query.all()
+    unresolved_complaints = Complaint.query.filter_by(resolved=False).all()
+    resolved_complaints = Complaint.query.filter_by(resolved=True).all()
+    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints)
+
+@app.route("/complaint/<int:complaint_id>")
+@login_required
+@admin_required
+def view_complaint(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    order = Order.query.get_or_404(complaint.order_id)
+    return render_template('complaint_details.html', complaint=complaint, order=order)
+
+@app.route("/complaint/<int:complaint_id>/refund", methods=['POST'])
+@login_required
+@admin_required
+def refund_user(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    # refund logic pore implement korbo
+    complaint.resolved = True
+    complaint.action_taken = "User refunded"
+    db.session.commit()
+    flash('User has been refunded.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/complaint/<int:complaint_id>/remove_provider", methods=['POST'])
+@login_required
+@admin_required
+def remove_service_provider(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    order = Order.query.get_or_404(complaint.order_id)
+    service_provider = ServiceProvider.query.get_or_404(order.service_provider_id)
+    db.session.delete(service_provider)
+    complaint.resolved = True
+    complaint.action_taken = "Service provider removed"
+    db.session.commit()
+    flash('Service provider has been removed.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/complaint/<int:complaint_id>/warn_provider", methods=['POST'])
+@login_required
+@admin_required
+def warn_service_provider(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    # warning logic pore implement korbo
+    complaint.resolved = True
+    complaint.action_taken = "Service provider warned"
+    db.session.commit()
+    flash('Service provider has been warned.', 'success')
+    return redirect(url_for('admin_dashboard'))
 
 
 @app.route("/about")
