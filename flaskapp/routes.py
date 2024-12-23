@@ -269,10 +269,21 @@ def view_orders():
     
 @app.route('/order_details/<int:order_id>')
 def order_details(order_id):
-    
     order = Order.query.get_or_404(order_id)
+
+    # Fetch related customer and service details
+    customer = User.query.get_or_404(order.customer_id)
+    service = Service.query.get_or_404(order.ser_id)
+
     ref = request.referrer
-    return render_template('ordersdetails.html', order=order, referrer=ref)
+    return render_template(
+        'ordersdetails.html',
+        order=order,
+        customer=customer,
+        service=service,
+        referrer=ref
+    )
+
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
 @login_required

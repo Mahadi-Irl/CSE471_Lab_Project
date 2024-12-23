@@ -1,10 +1,20 @@
 {% extends "layout.html" %}
+
 {% block content %}
     <div class="content-section">
-        <h2>{{ order.order_loc }}</h2>
-        <p><strong>Price:</strong> ${{ order.price }}</p>
+        <h2>Order Details</h2>
+        <p><strong>Service Title:</strong> {{ service.title }}</p>
+        <p><strong>Service Description:</strong> {{ service.description }}</p>
         
-        <p><strong>Description:</strong> {{ order.order_loc  }}</p>
+        <h3>Customer Information</h3>
+        <p><strong>Name:</strong> {{ customer.username }}</p>
+        <p><strong>Email:</strong> {{ customer.email }}</p>
+        
+        <h3>Order Information</h3>
+        <p><strong>Order Location:</strong> {{ order.order_loc }}</p>
+        <p><strong>Price:</strong> ${{ order.price }}</p>
+        <p><strong>Status:</strong> {{ order.status.value }}</p>
+        
         <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
 
         <form method="POST" action="{{ url_for('mark_ontheway', order_id=order.id) }}" style="display: inline;">
@@ -18,8 +28,5 @@
         <form method="POST" action="{{ url_for('mark_completed', order_id=order.id) }}" style="display: inline;">
             <button type="submit" class="btn btn-primary">Completed</button>
         </form>
-
-        
-        
     </div>
-{% endblock content %}
+{% endblock %}
