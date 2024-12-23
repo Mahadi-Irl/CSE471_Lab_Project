@@ -3,7 +3,7 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
@@ -349,5 +349,30 @@ def updateNotification(order_id):
         order.notifications = NotificationStatus.not_viewed
         db.session.commit()
 
+    
+    return redirect(url_for('notification'))
+
+
+
+
+@app.route('/acceptOrder/<int:order_id>')
+def acceptOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.accepted
+    db.session.commit()
+    flash('Order status updated to "Accepted".', 'success')
+    
+    return redirect(url_for('notification'))
+
+
+
+@app.route('/rejectOrder/<int:order_id>')
+def rejectOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.rejected
+    db.session.commit()
+    flash('Order status updated to "Rejected".', 'success')
     
     return redirect(url_for('notification'))
