@@ -65,7 +65,7 @@ class Service(db.Model):
     orders = db.relationship('Order', backref='linked_service', lazy=True) 
     
     def __repr__(self):
-        return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
+        return f'<Service {self.id},Title: {self.title}, Category: {self.category.value}, Date: {self.date_posted}>'
     
     def set_ratings(self, value):
         if 0 <= value <= 5:
@@ -89,12 +89,6 @@ class NotificationStatus(Enum):
     viewed = 'viewed'
     
 
-
-
-
-
-
-
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_loc = db.Column(db.String(200), nullable=False)  
@@ -110,4 +104,4 @@ class Order(db.Model):
     
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
-        return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status}, Notifications: {self.notifications}>'
+        return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'

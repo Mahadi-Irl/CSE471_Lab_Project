@@ -4,7 +4,7 @@
         <h2>{{ details.service_title }}</h2>
         <p><strong>Price:</strong> ${{ details.price }}</p>
         <p><strong>Date:</strong> {{ details.order_datetime.strftime('%Y-%m-%d')}}</p>
-        <p><strong>Status:</strong> {{ details.status }}</p>
+        <p><strong>Status:</strong> {{ details.status.value }}</p>
         <a href="{{ url_for('alluserorders') }}" class="btn btn-secondary">Back to Orders</a>
     </div>
 {% endblock content %}

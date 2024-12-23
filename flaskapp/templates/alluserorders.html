@@ -10,7 +10,7 @@
       <div><a href="{{ url_for('userorderdetails', order_id=order.id) }}"
         >{{ order.service_title }}</a
       > </div>
-      <span class="badge badge-info">{{ order.status }}</span>
+      <span class="badge badge-info">{{ order.status.value }}</span>
       <small class="text-muted"
         >{{ order.order_datetime.strftime('%Y-%m-%d') }}</small
       >
