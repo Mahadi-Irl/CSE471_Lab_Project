@@ -316,5 +316,5 @@ def mark_completed(order_id):
     
     order.status = OrderStatus.completed
     db.session.commit()
-    flash('Order status updated to "on the way".', 'success')
+    flash('Order status updated to "Completed".', 'success')
     return redirect(url_for('accepted_orders'))
