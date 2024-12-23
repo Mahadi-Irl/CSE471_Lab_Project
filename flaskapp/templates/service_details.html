@@ -6,6 +6,6 @@
         <p><strong>Date:</strong> {{ details.date_posted.strftime('%Y-%m-%d') }}</p>
         <p><strong>Description:</strong> {{ details.description }}</p>
         <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
-        <a href="{{ url_for('order', service_id = details.id) }}" class="btn btn-secondary">Book an order</a>
+        <a href="{{ url_for('placeorder', service_id = details.id) }}" class="btn btn-secondary">Book an order</a>
     </div>
 {% endblock content %}

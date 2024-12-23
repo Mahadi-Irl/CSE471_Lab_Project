@@ -3,10 +3,13 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum, Order
+from flaskapp.models import User, ServiceProvider, Service, ServiceProviderService, CategoryEnum, Order
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
+from datetime import datetime
+from sqlalchemy.orm import joinedload
+
 
 
 @app.route("/")
@@ -190,8 +193,26 @@ def save_picture(form_picture):
 @app.route('/alluserorders')
 @login_required
 def alluserorders():
-    orders = ServiceOrder.query.filter_by(customer_id=current_user.id).all()
-    return render_template('alluserorders.html', orders=orders)
+    
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.customer_id == current_user.id)  
+    .all()  
+)
+    
+    combined_details = [
+    {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
+    for order, service in orders
+]
+
+    return render_template('alluserorders.html', orders=combined_details)
 
 
 
@@ -200,13 +221,28 @@ def alluserorders():
 @login_required
 def userorderdetails(order_id):
     
-    order = ServiceOrder.query.filter_by(id=order_id, customer_id=current_user.id).first()
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.id == order_id).first()
+)
+    if orders:
+        order, service = orders  # Unpack the tuple
+        combined_details = {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
 
-    if not order:
+   
+
+    if not orders:
         flash('Order not found', 'danger')
         return redirect(url_for('alluserorders'))
 
-    return render_template('userorderdetails.html', details=order)
+    return render_template('userorderdetails.html', details=combined_details)
 
 
 
@@ -248,7 +284,7 @@ def placeorder(service_id):
 def postorder():
     if request.method == 'POST':
         location = request.form.get('location')
-        date_time = request.form.get('datetime')
+        date_time = datetime.fromisoformat(request.form.get('datetime'))
         price = request.form.get('price', type=float)
         service_id = request.form.get('service_id', type=int)
         service_provider_id = request.form.get('service_provider_id', type=int)
@@ -259,10 +295,10 @@ def postorder():
         return redirect('/submitOrder')
 
    
-    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id)
+    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
 
-    # db.session.add(new_order)
-    # db.session.commit()
+    db.session.add(new_order)
+    db.session.commit()
 
     flash("Order submitted successfully!", "success")
     return redirect(url_for('alluserorders'))
