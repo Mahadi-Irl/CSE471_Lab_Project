@@ -303,3 +303,38 @@ def postorder():
     flash("Order submitted successfully!", "success")
     return redirect(url_for('alluserorders'))
     
+
+from flaskapp.models import User, ServiceProvider, Service, Order, OrderStatus
+
+@app.route('/order/<int:order_id>/review', methods=['GET', 'POST'])
+@login_required
+def review_order(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.customer_id != current_user.id:
+        flash("You are not authorized to review this order.", "danger")
+        return redirect(url_for('orders'))
+
+    if order.status != OrderStatus.completed:
+        flash("You can only review completed orders.", "warning")
+        return redirect(url_for('orders'))
+
+    if request.method == 'POST':
+       
+        rating = float(request.form.get('rating'))
+        review = request.form.get('review')
+
+        
+        if rating < 0 or rating > 5:
+            flash("Rating must be between 0 and 5.", "danger")
+            return redirect(url_for('review_order', order_id=order_id))
+
+        order.rate = rating
+        order.review = review
+        db.session.commit()
+
+        
+        flash("Thank you for your review!", "success")
+        return redirect(url_for('review_order', order_id=order_id)) 
+
+    return render_template('review_order.html', order=order)

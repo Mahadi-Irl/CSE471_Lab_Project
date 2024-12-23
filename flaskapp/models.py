@@ -102,6 +102,9 @@ class Order(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
     
+    review = db.Column(db.String(500), nullable=True)  
+    rate = db.Column(db.Float, nullable=True)  
+    
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
         return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'
