@@ -2,51 +2,85 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Orders</h1>
 
     <h2>Ongoing Orders</h2>
     {% if accepted_orders %}
-        <ul class="list-group mb-4">
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
             {% for order, service, customer in accepted_orders %}
-                <li class="list-group-item">
-                    <strong>Service Title:</strong>
-                    <a href="{{ url_for('order_details', order_id=order.id) }}">
-                        {{ service.title }}
-                    </a>
-                    <br>
-                    <strong>Service Description:</strong> {{ service.description }} <br>
-                    <strong>Customer Name:</strong> {{ customer.username }} <br>
-                    <strong>Order Location:</strong> {{ order.order_loc }} <br>
-                    <strong>Status:</strong> {{ order.status.value }}
-                </li>
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="card-title">
+                                <a href="{{ url_for('order_details', order_id=order.id) }}" class="text-dark text-decoration-none">
+                                    {{ service.title }}
+                                </a>
+                            </h3>
+                            <p class="card-text text-muted">{{ service.description }}</p>
+                            <p class="mb-0"><strong>Location:</strong> {{ order.order_loc }}</p>
+                            <p class="mb-0">
+                                <strong>Status:</strong> 
+                                <span class="
+                                    {% if order.status.value == 'completed' %}
+                                        text-success
+                                    {% elif order.status.value == 'on_the_way' %}
+                                        text-primary
+                                    {% elif order.status.value == 'reached' %}
+                                        text-warning
+                                    {% else %}
+                                        text-muted
+                                    {% endif %}
+                                ">
+                                    {{ order.status.value }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
         <p class="text-muted">No Ongoing orders at the moment.</p>
     {% endif %}
 
     <h2>Completed Orders</h2>
     {% if completed_orders %}
-        <ul class="list-group">
+        <div class="row row-cols-1 row-cols-md-2 g-4">
             {% for order, service, customer in completed_orders %}
-                <li class="list-group-item">
-                    <strong>Service Title:</strong>
-                    <a href="{{ url_for('order_details', order_id=order.id) }}">
-                        {{ service.title }}
-                    </a>
-                    <br>
-                    <strong>Service Description:</strong> {{ service.description }} <br>
-                    <strong>Customer Name:</strong> {{ customer.username }} <br>
-                    <strong>Order Location:</strong> {{ order.order_loc }} <br>
-                    <strong>Status:</strong> {{ order.status.value }}
-                </li>
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="card-title">
+                                <a href="{{ url_for('order_details', order_id=order.id) }}" class="text-dark text-decoration-none">
+                                    {{ service.title }}
+                                </a>
+                            </h3>
+                            <p class="card-text text-muted">{{ service.description }}</p>
+                            <p class="mb-0"><strong>Location:</strong> {{ order.order_loc }}</p>
+                            <p class="mb-0">
+                                <strong>Status:</strong> 
+                                <span class="
+                                    {% if order.status.value == 'completed' %}
+                                        text-success
+                                    {% elif order.status.value == 'on_the_way' %}
+                                        text-primary
+                                    {% elif order.status.value == 'reached' %}
+                                        text-warning
+                                    {% else %}
+                                        text-muted
+                                    {% endif %}
+                                ">
+                                    {{ order.status.value }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
         <p class="text-muted">No completed orders at the moment.</p>
     {% endif %}
 </div>
 {% endblock %}
-
 
 
