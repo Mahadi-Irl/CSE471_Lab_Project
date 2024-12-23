@@ -1,4 +1,6 @@
-{% extends "layout.html" %} {% block search %}
+{% extends "layout.html" %} 
+
+{% block search %}
 <form action="{{ url_for('search_result') }}" method="GET">
   <div>
     <label for="query">Search:</label>
@@ -32,18 +34,32 @@
   <button type="submit" class="btn btn-primary">Search</button>
 </form>
 {% endblock %} 
+
+
+
+
 {% block result %}
 <h1>Search Results</h1>
 {% if result %}
 <ul>
     {% for result in result %}
     <li>
-      <strong>{{ result.title }}</strong> - $ {{ result.ser_price }} - {{
-      result.ratings }}⭐
+      <article class="media content-section">
+        <div class="media-body">
+          <h2>
+            <a
+              class="article-title"
+              href="{{ url_for('servicedetails', service_id = result.id) }}"
+              >{{ result.title }}</a
+            >
+          </h2>
+          <p class="article-content">{{ result.description }}</p>
+        </div>
+      </article>
     </li>
     {% endfor %} 
     
-  </ul>
+</ul>
 {% else %}
 <h2>No results found</h2>
 {% endif %}

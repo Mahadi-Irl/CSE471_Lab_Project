@@ -16,7 +16,8 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
-    orders = db.relationship('ServiceOrder', backref='customer', lazy=True)
+    orders = db.relationship('Order', backref='customer', lazy=True)
+    services = db.relationship('Service', backref='creator', lazy=True)
 
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
@@ -38,17 +39,7 @@ class ServiceProviderService(db.Model):
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), primary_key=True)
 
 
-class ServiceOrder(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    order_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    status = db.Column(db.String(20), nullable=False, default='Pending')
-    customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
-    service = db.relationship('Service', backref='orders', lazy=True)
 
-    def __repr__(self):
-        return f"ServiceOrder('Order #{self.id}', 'Customer: {self.customer.username}', 'Service: {self.service.title}', 'Provider: {self.service_provider.name}', 'Status: {self.status}')"
 
 
 class CategoryEnum(Enum):
@@ -58,27 +49,62 @@ class CategoryEnum(Enum):
     BOOKS = 'Stationary Services'
     SPORTS = 'Practice Matches'
 
-
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # User who created the service
-    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  # Linked service provider
-    ser_price = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
+    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  
     ratings = db.Column(db.Integer, nullable=False)
     category = db.Column(db.Enum(CategoryEnum), nullable=False)
     duration = db.Column(db.Integer, nullable = False)
+    ser_price = db.Column(db.Float, nullable=False)
+
+
+    orders = db.relationship('Order', backref='linked_service', lazy=True) 
     
     def __repr__(self):
-        return f"Post('{self.title}', '{self.category}',  '{self.date_posted}')"
+        return f'<Service {self.id},Title: {self.title}, Category: {self.category.value}, Date: {self.date_posted}>'
     
     def set_ratings(self, value):
         if 0 <= value <= 5:
             self.ratings = value
         else:
-            raise ValueError("Ratings must be between 0 and 5") # must see if this works
+            raise ValueError("Ratings must be between 0 and 5") 
 
 
-  
+
+class OrderStatus(Enum):
+    pending = 'pending'
+    accepted = 'accepted'
+    on_the_way = 'on the way'
+    reached = 'reached'
+    completed = 'completed'
+    rejected = 'rejected'
+
+
+class NotificationStatus(Enum):
+    not_viewed = 'not viewed'
+    viewed = 'viewed'
+    
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_loc = db.Column(db.String(200), nullable=False)  
+    order_datetime = db.Column(db.DateTime, default=datetime.utcnow)  
+    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.pending)  
+    review = db.Column(db.String(500), nullable=True)  
+    rate = db.Column(db.Float, nullable=True)  
+    price = db.Column(db.Float, nullable=False) 
+    notifications = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.not_viewed) 
+    ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
+    
+    review = db.Column(db.String(500), nullable=True)  
+    rate = db.Column(db.Float, nullable=True)  
+    
+    service = db.relationship('Service', backref='linked_orders', lazy=True)
+    def __repr__(self):
+        return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'

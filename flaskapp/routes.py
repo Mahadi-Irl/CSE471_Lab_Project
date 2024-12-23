@@ -3,22 +3,24 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, ServiceProviderService, CategoryEnum
+from flaskapp.models import User, ServiceProvider, Service, ServiceProviderService, CategoryEnum, Order
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
-from enum import Enum
 from sqlalchemy import or_
+from datetime import datetime
+from sqlalchemy.orm import joinedload
+
 
 
 @app.route("/")
 @app.route("/home")
 def home():
-    services_data = getservices()  # Fetch services grouped by categories
+    services_data = getservices()  
     servicesList = []
 
-    # Flatten the data structure to pass as a list of services
+    
     for category, service in services_data.items():
-        service["category"] = category  # Add category information to each service
+        service["category"] = category  
         servicesList.append(service)
 
     return render_template('home.html', services = servicesList)
@@ -33,8 +35,8 @@ def getservices():
     categories = db.session.query(Service.category).distinct().all()
     obj = {}
     for cat in categories:
-        category = cat[0]  # Extract the Enum value from the tuple
-        # Fetch the top-rated service for the current category
+        category = cat[0] 
+        
         top_service = (
             db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
         )
@@ -48,7 +50,13 @@ def getservices():
                 "duration": top_service.duration,
             }
     return obj
-    
+
+
+@app.route('/servicedetails/<int:service_id>')
+def servicedetails(service_id):
+    services = Service.query.filter_by(id=service_id).first()
+    ref = request.referrer
+    return render_template('service_details.html', details=services, referrer=ref)
     
 @app.route("/register", methods=['GET', 'POST'])
 def register():
@@ -105,7 +113,7 @@ def become_service_provider():
             flash('All fields are required.', 'danger')
             return redirect(url_for('become_service_provider'))
         
-        # Create and save the service provider
+        
         
         service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
         
@@ -114,7 +122,7 @@ def become_service_provider():
             db.session.add(service_provider)
             db.session.commit()
 
-        # Create and save the service with the selected category
+        
         service = Service(
             title=title, 
             description=description, 
@@ -122,7 +130,7 @@ def become_service_provider():
             user_id=current_user.id, 
             provider_id=current_user.id,
             ratings = 1,
-            category=category,  # Store the selected category
+            category=category, 
             duration = duration,
         )
         db.session.add(service)
@@ -185,8 +193,26 @@ def save_picture(form_picture):
 @app.route('/alluserorders')
 @login_required
 def alluserorders():
-    orders = ServiceOrder.query.filter_by(customer_id=current_user.id).all()
-    return render_template('alluserorders.html', orders=orders)
+    
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.customer_id == current_user.id)  
+    .all()  
+)
+    
+    combined_details = [
+    {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
+    for order, service in orders
+]
+
+    return render_template('alluserorders.html', orders=combined_details)
 
 
 
@@ -194,14 +220,29 @@ def alluserorders():
 @app.route('/userorderdetails/<int:order_id>')
 @login_required
 def userorderdetails(order_id):
-    # Fetch the specific order belonging to the logged-in user
-    order = ServiceOrder.query.filter_by(id=order_id, customer_id=current_user.id).first()
+    
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.id == order_id).first()
+)
+    if orders:
+        order, service = orders  # Unpack the tuple
+        combined_details = {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
 
-    if not order:
+   
+
+    if not orders:
         flash('Order not found', 'danger')
         return redirect(url_for('alluserorders'))
 
-    return render_template('userorderdetails.html', details=order)
+    return render_template('userorderdetails.html', details=combined_details)
 
 
 
@@ -224,3 +265,76 @@ def account():
         form.email.data = current_user.email
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
+
+
+
+
+
+
+@app.route('/placeorder/<int:service_id>')
+@login_required
+def placeorder(service_id):
+    services = Service.query.filter_by(id=service_id).first()
+    ref = request.referrer
+    return render_template('orderform.html', details=services, referrer=ref)
+
+
+
+@app.route('/submitOrder', methods = ['POST'])
+def postorder():
+    if request.method == 'POST':
+        location = request.form.get('location')
+        date_time = datetime.fromisoformat(request.form.get('datetime'))
+        price = request.form.get('price', type=float)
+        service_id = request.form.get('service_id', type=int)
+        service_provider_id = request.form.get('service_provider_id', type=int)
+
+    
+    if not location or not date_time or not price:
+        flash("All fields are required!", "danger")
+        return redirect('/submitOrder')
+
+   
+    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
+
+    db.session.add(new_order)
+    db.session.commit()
+
+    flash("Order submitted successfully!", "success")
+    return redirect(url_for('alluserorders'))
+    
+
+from flaskapp.models import User, ServiceProvider, Service, Order, OrderStatus
+
+@app.route('/order/<int:order_id>/review', methods=['GET', 'POST'])
+@login_required
+def review_order(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.customer_id != current_user.id:
+        flash("You are not authorized to review this order.", "danger")
+        return redirect(url_for('orders'))
+
+    if order.status != OrderStatus.completed:
+        flash("You can only review completed orders.", "warning")
+        return redirect(url_for('orders'))
+
+    if request.method == 'POST':
+       
+        rating = float(request.form.get('rating'))
+        review = request.form.get('review')
+
+        
+        if rating < 0 or rating > 5:
+            flash("Rating must be between 0 and 5.", "danger")
+            return redirect(url_for('review_order', order_id=order_id))
+
+        order.rate = rating
+        order.review = review
+        db.session.commit()
+
+        
+        flash("Thank you for your review!", "success")
+        return redirect(url_for('review_order', order_id=order_id)) 
+
+    return render_template('review_order.html', order=order)
