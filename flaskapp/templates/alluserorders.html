@@ -1,4 +1,5 @@
-{% extends "layout.html" %} {% block content %}
+{% extends "layout.html" %}
+{% block content %}
 <div class="content-section">
   <h2>Your Orders</h2>
   {% if orders %}
@@ -7,13 +8,24 @@
     <li
       class="list-group-item d-flex justify-content-between align-items-center"
     >
-      <div><a href="{{ url_for('userorderdetails', order_id=order.id) }}"
-        >{{ order.service_title }}</a
-      > </div>
+      <div>
+        <!-- Order details link -->
+        <a href="{{ url_for('userorderdetails', order_id=order.id) }}">
+          {{ order.service_title }}
+        </a>
+        <!-- If the order is completed, show the Rate and Review button -->
+        {% if order.status.value == 'completed' %}
+        <a
+          href="{{ url_for('review_order', order_id=order.id) }}"
+          class="btn btn-sm btn-outline-primary ml-3"
+        >
+          Rate and Review
+        </a>
+        {% endif %}
+      </div>
+      <!-- Display status and date -->
       <span class="badge badge-info">{{ order.status.value }}</span>
-      <small class="text-muted"
-        >{{ order.order_datetime.strftime('%Y-%m-%d') }}</small
-      >
+      <small class="text-muted">{{ order.order_datetime.strftime('%Y-%m-%d') }}</small>
     </li>
     {% endfor %}
   </ul>

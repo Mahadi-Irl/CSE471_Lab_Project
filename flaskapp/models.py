@@ -17,6 +17,7 @@ class User(db.Model, UserMixin):
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
     orders = db.relationship('Order', backref='customer', lazy=True)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
     services = db.relationship('Service', backref='creator', lazy=True)
 
     def __repr__(self):
@@ -102,6 +103,26 @@ class Order(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
     
+    review = db.Column(db.String(500), nullable=True)  
+    rate = db.Column(db.Float, nullable=True)  
+    
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
         return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'
+
+
+
+class Complaint(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    resolved = db.Column(db.Boolean, nullable=False, default=False)
+    action_taken = db.Column(db.String(100), nullable=True)
+
+    order = db.relationship('Order', backref='complaints', lazy=True)
+    user = db.relationship('User', backref='complaints', lazy=True)
+
+    def __repr__(self):
+        return f"Complaint('{self.id}', '{self.date_posted}', '{self.message}')"
