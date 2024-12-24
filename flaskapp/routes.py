@@ -528,3 +528,13 @@ def mark_completed(order_id):
     db.session.commit()
     flash('Order status updated to "Completed".', 'success')
     return redirect(url_for('accepted_orders'))
+
+@app.route('/chat/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def chat(order_id):
+    # Logic to handle chat functionality for the given order
+    order = Order.query.get_or_404(order_id)
+    # Verify user has permission to access the order
+    if order.customer_id != current_user.id and order.service_provider_id != current_user.id:
+        abort(403)
+    return render_template('chat.html', order=order)
