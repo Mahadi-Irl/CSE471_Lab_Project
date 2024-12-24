@@ -30,6 +30,24 @@
         </form>
     </div>
 
+    {% if order.status == 'COMPLETED' %}
+    <h3>Rate and Review</h3>
+    <form method="POST" action="{{ url_for('review_order', order_id=order.id) }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.rate.label(class="form-control-label") }}
+            {{ form.rate(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.review.label(class="form-control-label") }}
+            {{ form.review(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.submit(class="btn btn-primary") }}
+        </div>
+    </form>
+    {% endif %}
+
     <a href="{{ referrer }}" class="btn btn-secondary mb-3 mt-3">Back</a>
 </div>
 {% endblock %}

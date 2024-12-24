@@ -4,7 +4,7 @@ from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt
 from flaskapp.models import User, ServiceProvider, Service, CategoryEnum, OrderStatus, Order, Complaint, NotificationStatus
-from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
@@ -397,8 +397,8 @@ def notification():
             } for order, service in viewed]
     
     else:
-        note = None
-        viewed = None
+        notes = None
+        views = None
     
     return render_template('notification.html', note = notes, viewed = views)
 
@@ -476,23 +476,14 @@ def view_orders():
     )
 
     
-@app.route('/order_details/<int:order_id>')
+@app.route("/order/<int:order_id>")
+@login_required
 def order_details(order_id):
     order = Order.query.get_or_404(order_id)
-
-    # Fetch related customer and service details
-    customer = User.query.get_or_404(order.customer_id)
     service = Service.query.get_or_404(order.ser_id)
-
-    ref = request.referrer
-    return render_template(
-        'ordersdetails.html',
-        order=order,
-        customer=customer,
-        service=service,
-        referrer=ref
-    )
-
+    customer = User.query.get_or_404(order.customer_id)
+    form = ReviewForm()
+    return render_template('ordersdetails.html', order=order, service=service, customer=customer, form=form)
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
 @login_required
@@ -527,3 +518,20 @@ def mark_completed(order_id):
     db.session.commit()
     flash('Order status updated to "Completed".', 'success')
     return redirect(url_for('accepted_orders'))
+
+
+
+@app.route("/review/<int:order_id>/", methods=['POST'])
+@login_required
+def review_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    #if order.customer_id != current_user.id:
+        #abort(403)
+    form = ReviewForm()
+    if form.validate_on_submit():
+        order.rate = form.rate.data
+        order.review = form.review.data
+        db.session.commit()
+        flash('Your review has been submitted.', 'success')
+        return redirect(url_for('order_details', order_id=order.id))
+    return render_template('ordersdetails.html', order=order, form=form)
