@@ -1,13 +1,16 @@
 import os
 import secrets
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, ServiceOrder, Service, Order ,ServiceProviderService, CategoryEnum, OrderStatus
+from flaskapp.models import User, ServiceProvider, Service, CategoryEnum, OrderStatus, Order, Complaint, NotificationStatus
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
-from enum import Enum
 from sqlalchemy import or_
+from datetime import datetime
+from sqlalchemy.orm import joinedload
+from functools import wraps
+
 
 
 @app.route("/")
@@ -20,8 +23,72 @@ def home():
     for category, service in services_data.items():
         service["category"] = category  
         servicesList.append(service)
-
     return render_template('home.html', services = servicesList)
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin")
+@login_required
+@admin_required
+def admin_dashboard():
+    users = User.query.all()
+    services = Service.query.all()
+    unresolved_complaints = Complaint.query.filter_by(resolved=False).all()
+    resolved_complaints = Complaint.query.filter_by(resolved=True).all()
+    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints)
+
+@app.route("/complaint/<int:complaint_id>")
+@login_required
+@admin_required
+def view_complaint(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    order = Order.query.get_or_404(complaint.order_id)
+    return render_template('complaint_details.html', complaint=complaint, order=order)
+
+@app.route("/complaint/<int:complaint_id>/refund", methods=['POST'])
+@login_required
+@admin_required
+def refund_user(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    # refund logic pore implement korbo
+    complaint.resolved = True
+    complaint.action_taken = "User refunded"
+    db.session.commit()
+    flash('User has been refunded.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/complaint/<int:complaint_id>/remove_provider", methods=['POST'])
+@login_required
+@admin_required
+def remove_service_provider(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    order = Order.query.get_or_404(complaint.order_id)
+    service_provider = ServiceProvider.query.get_or_404(order.service_provider_id)
+    db.session.delete(service_provider)
+    complaint.resolved = True
+    complaint.action_taken = "Service provider removed"
+    db.session.commit()
+    flash('Service provider has been removed.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/complaint/<int:complaint_id>/warn_provider", methods=['POST'])
+@login_required
+@admin_required
+def warn_service_provider(complaint_id):
+    complaint = Complaint.query.get_or_404(complaint_id)
+    # warning logic pore implement korbo
+    complaint.resolved = True
+    complaint.action_taken = "Service provider warned"
+    db.session.commit()
+    flash('Service provider has been warned.', 'success')
+    return redirect(url_for('admin_dashboard'))
 
 
 @app.route("/about")
@@ -33,8 +100,8 @@ def getservices():
     categories = db.session.query(Service.category).distinct().all()
     obj = {}
     for cat in categories:
-        category = cat[0]  # Extract the Enum value from the tuple
-        # Fetch the top-rated service for the current category
+        category = cat[0] 
+        
         top_service = (
             db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
         )
@@ -111,7 +178,7 @@ def become_service_provider():
             flash('All fields are required.', 'danger')
             return redirect(url_for('become_service_provider'))
         
-        # Create and save the service provider
+        
         
         service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
         
@@ -120,7 +187,7 @@ def become_service_provider():
             db.session.add(service_provider)
             db.session.commit()
 
-        # Create and save the service with the selected category
+        
         service = Service(
             title=title, 
             description=description, 
@@ -128,7 +195,7 @@ def become_service_provider():
             user_id=current_user.id, 
             provider_id=current_user.id,
             ratings = 1,
-            category=category,  # Store the selected category
+            category=category, 
             duration = duration,
         )
         db.session.add(service)
@@ -191,8 +258,26 @@ def save_picture(form_picture):
 @app.route('/alluserorders')
 @login_required
 def alluserorders():
-    orders = ServiceOrder.query.filter_by(customer_id=current_user.id).all()
-    return render_template('alluserorders.html', orders=orders)
+    
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.customer_id == current_user.id)  
+    .all()  
+)
+    
+    combined_details = [
+    {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
+    for order, service in orders
+]
+
+    return render_template('alluserorders.html', orders=combined_details)
 
 
 
@@ -200,14 +285,29 @@ def alluserorders():
 @app.route('/userorderdetails/<int:order_id>')
 @login_required
 def userorderdetails(order_id):
-    # Fetch the specific order belonging to the logged-in user
-    order = ServiceOrder.query.filter_by(id=order_id, customer_id=current_user.id).first()
+    
+    orders = (
+    db.session.query(Order, Service)
+    .join(Service, Order.ser_id == Service.id)  
+    .filter(Order.id == order_id).first()
+)
+    if orders:
+        order, service = orders  
+        combined_details = {
+        'id': order.id,
+        'price': order.price,
+        'order_datetime': order.order_datetime,
+        'status': order.status,
+        'service_title': service.title,
+    }
 
-    if not order:
+   
+
+    if not orders:
         flash('Order not found', 'danger')
         return redirect(url_for('alluserorders'))
 
-    return render_template('userorderdetails.html', details=order)
+    return render_template('userorderdetails.html', details=combined_details)
 
 
 
@@ -233,6 +333,115 @@ def account():
 
 
 
+
+
+
+@app.route('/placeorder/<int:service_id>')
+@login_required
+def placeorder(service_id):
+    services = Service.query.filter_by(id=service_id).first()
+    ref = request.referrer
+    return render_template('orderform.html', details=services, referrer=ref)
+
+
+
+@app.route('/submitOrder', methods = ['POST'])
+def postorder():
+    if request.method == 'POST':
+        location = request.form.get('location')
+        date_time = datetime.fromisoformat(request.form.get('datetime'))
+        price = request.form.get('price', type=float)
+        service_id = request.form.get('service_id', type=int)
+        service_provider_id = request.form.get('service_provider_id', type=int)
+
+    
+    if not location or not date_time or not price:
+        flash("All fields are required!", "danger")
+        return redirect('/submitOrder')
+
+   
+    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
+
+    db.session.add(new_order)
+    db.session.commit()
+
+    flash("Order submitted successfully!", "success")
+    return redirect(url_for('alluserorders'))
+
+
+
+@app.route('/notification')
+def notification():
+    
+    checkprovider = ServiceProvider.query.filter_by(id = current_user.id).first()
+    if checkprovider:
+         
+        note = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'not_viewed', Order.service_provider_id == checkprovider.id).all())
+        notes = [{
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+            'loc' : order.order_loc,
+            } for order, service in note]
+
+        viewed = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'viewed', Order.service_provider_id == checkprovider.id).all())
+        views = [{
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+            'loc' : order.order_loc,
+            } for order, service in viewed]
+    
+    else:
+        note = None
+        viewed = None
+    
+    return render_template('notification.html', note = notes, viewed = views)
+
+@app.route('/updateNotification/<int:order_id>')
+def updateNotification(order_id):
+    order = Order.query.filter_by(id=order_id).first()
+
+    if order.notifications == NotificationStatus.not_viewed:
+        order.notifications = NotificationStatus.viewed
+        db.session.commit()
+
+
+    else:
+        order.notifications = NotificationStatus.not_viewed
+        db.session.commit()
+
+    
+    return redirect(url_for('notification'))
+
+
+
+
+@app.route('/acceptOrder/<int:order_id>')
+def acceptOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.accepted
+    db.session.commit()
+    flash('Order status updated to "Accepted".', 'success')
+    
+    return redirect(url_for('notification'))
+
+
+
+@app.route('/rejectOrder/<int:order_id>')
+def rejectOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.rejected
+    db.session.commit()
+    flash('Order status updated to "Rejected".', 'success')
+    
+    return redirect(url_for('notification'))
 @app.route("/accepted_orders", methods=['GET', 'POST'], endpoint='accepted_orders')
 @login_required
 def view_orders():

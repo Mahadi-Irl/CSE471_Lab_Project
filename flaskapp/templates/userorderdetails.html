@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="content-section">
-        <h2>{{ details.service.title }}</h2>
-        <p><strong>Price:</strong> ${{ details.service.price }}</p>
-        <p><strong>Date:</strong> {{ details.order_date.strftime('%Y-%m-%d') }}</p>
-        <p><strong>Status:</strong> {{ details.status }}</p>
+        <h2>{{ details.service_title }}</h2>
+        <p><strong>Price:</strong> ${{ details.price }}</p>
+        <p><strong>Date:</strong> {{ details.order_datetime.strftime('%Y-%m-%d')}}</p>
+        <p><strong>Status:</strong> {{ details.status.value }}</p>
         <a href="{{ url_for('alluserorders') }}" class="btn btn-secondary">Back to Orders</a>
     </div>
 {% endblock content %}

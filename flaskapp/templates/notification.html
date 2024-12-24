@@ -1,0 +1,49 @@
+{% extends "layout.html" %} 
+
+{% block content %}
+<h2>Notificantion</h2>
+    {% if note %}
+    
+    <h3>Not Viewed: {{note | length}}</h3>
+        {% for note in note %}
+        <div class="content-section">
+        
+            <strong>Title:</strong> {{ note.service_title }} <br>
+            <strong>Price:</strong> {{ note.price }} <br>
+            <strong>Location:</strong> {{ note.loc}} <br>
+            <strong>Date and Time:</strong> {{ note.order_datetime }} <br>
+            <strong>Status:</strong> {{ note.status.value }} <br>
+            <a href="{{ url_for('updateNotification', order_id = note.id) }}">Mark Viewed</a>
+            <a href="{{ url_for('acceptOrder', order_id = note.id) }}">Accepted</a>
+            <a href="{{ url_for('rejectOrder', order_id = note.id) }}">Rejected</a>
+        
+        </div>
+    {% endfor %}
+    {% else %}
+    <h1> No Unviewed Notificantion </h1>
+    {% endif %}
+
+
+    {% if viewed %}
+    
+    <h3>Viewed: {{viewed | length}}</h3>
+        {% for view in viewed %}
+        <div class="content-section">
+        
+            <strong>Title:</strong> {{ view.service_title }} <br>
+            <strong>Price:</strong> {{ view.price }} <br>
+            <strong>Location:</strong> {{ view.loc}} <br>
+            <strong>Date and Time:</strong> {{ view.order_datetime }} <br>
+            <strong>Status:</strong> {{ view.status.value }} <br>
+            <a href="{{ url_for('updateNotification', order_id = view.id) }}">Mark Unviewed</a>
+            <a href="{{ url_for('acceptOrder', order_id = view.id) }}">Accepted</a>
+            <a href="{{ url_for('rejectOrder', order_id = view.id) }}">Rejected</a>
+        
+        </div>
+    {% endfor %}
+    {% else %}
+    <h1> No Viewed Notificantion </h1>
+    {% endif %}
+
+
+{% endblock content %}
