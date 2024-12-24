@@ -3,7 +3,8 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, Service, ServiceProviderService, CategoryEnum, Order, Complaint
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, CategoryEnum
+
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
@@ -23,7 +24,6 @@ def home():
     for category, service in services_data.items():
         service["category"] = category  
         servicesList.append(service)
-
     return render_template('home.html', services = servicesList)
 
 
@@ -293,7 +293,7 @@ def userorderdetails(order_id):
     .filter(Order.id == order_id).first()
 )
     if orders:
-        order, service = orders  # Unpack the tuple
+        order, service = orders  
         combined_details = {
         'id': order.id,
         'price': order.price,
@@ -368,39 +368,78 @@ def postorder():
 
     flash("Order submitted successfully!", "success")
     return redirect(url_for('alluserorders'))
+
+
+
+@app.route('/notification')
+def notification():
     
+    checkprovider = ServiceProvider.query.filter_by(id = current_user.id).first()
+    if checkprovider:
+         
+        note = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'not_viewed', Order.service_provider_id == checkprovider.id).all())
+        notes = [{
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+            'loc' : order.order_loc,
+            } for order, service in note]
 
-from flaskapp.models import User, ServiceProvider, Service, Order, OrderStatus
+        viewed = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'viewed', Order.service_provider_id == checkprovider.id).all())
+        views = [{
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+            'loc' : order.order_loc,
+            } for order, service in viewed]
+    
+    else:
+        note = None
+        viewed = None
+    
+    return render_template('notification.html', note = notes, viewed = views)
 
-@app.route('/order/<int:order_id>/review', methods=['GET', 'POST'])
-@login_required
-def review_order(order_id):
-    order = Order.query.get_or_404(order_id)
+@app.route('/updateNotification/<int:order_id>')
+def updateNotification(order_id):
+    order = Order.query.filter_by(id=order_id).first()
 
-    if order.customer_id != current_user.id:
-        flash("You are not authorized to review this order.", "danger")
-        return redirect(url_for('orders'))
-
-    if order.status != OrderStatus.completed:
-        flash("You can only review completed orders.", "warning")
-        return redirect(url_for('orders'))
-
-    if request.method == 'POST':
-       
-        rating = float(request.form.get('rating'))
-        review = request.form.get('review')
-
-        
-        if rating < 0 or rating > 5:
-            flash("Rating must be between 0 and 5.", "danger")
-            return redirect(url_for('review_order', order_id=order_id))
-
-        order.rate = rating
-        order.review = review
+    if order.notifications == NotificationStatus.not_viewed:
+        order.notifications = NotificationStatus.viewed
         db.session.commit()
 
-        
-        flash("Thank you for your review!", "success")
-        return redirect(url_for('review_order', order_id=order_id)) 
 
-    return render_template('review_order.html', order=order)
+    else:
+        order.notifications = NotificationStatus.not_viewed
+        db.session.commit()
+
+    
+    return redirect(url_for('notification'))
+
+
+
+
+@app.route('/acceptOrder/<int:order_id>')
+def acceptOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.accepted
+    db.session.commit()
+    flash('Order status updated to "Accepted".', 'success')
+    
+    return redirect(url_for('notification'))
+
+
+
+@app.route('/rejectOrder/<int:order_id>')
+def rejectOrder(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    order.status = OrderStatus.rejected
+    db.session.commit()
+    flash('Order status updated to "Rejected".', 'success')
+    
+    return redirect(url_for('notification'))
