@@ -398,8 +398,8 @@ def notification():
             } for order, service in viewed]
     
     else:
-        note = None
-        viewed = None
+        notes = None
+        views = None
     
     return render_template('notification.html', note = notes, viewed = views)
 
