@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block search %}
+<!-- Admin-specific search or filters can be added here if needed -->
+{% endblock search %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<!-- Listing unresolved complaints -->
+<h2>Unresolved Complaints</h2>
+{% for complaint in unresolved_complaints %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ complaint.user.username }}</a>
+      <small class="text-muted">{{ complaint.date_posted }}</small>
+    </div>
+    <p class="article-content">{{ complaint.message }}</p>
+    <a href="{{ url_for('view_complaint', complaint_id=complaint.id) }}" class="btn btn-primary">View Details</a>
+  </div>
+</article>
+{% endfor %}
+
+<!-- Listing resolved complaints -->
+<h2>Resolved Complaints</h2>
+{% for complaint in resolved_complaints %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ complaint.user.username }}</a>
+      <small class="text-muted">{{ complaint.date_posted }}</small>
+    </div>
+    <p class="article-content">{{ complaint.message }}</p>
+    <a href="{{ url_for('view_complaint', complaint_id=complaint.id) }}" class="btn btn-primary">View Details</a>
+  </div>
+</article>
+{% endfor %}
+
+<!-- Example of listing users -->
+<h2>Users</h2>
+{% for user in users %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ user.username }}</a>
+      <small class="text-muted">{{ user.email }}</small>
+    </div>
+    <p class="article-content">Admin: {{ user.is_admin }}</p>
+  </div>
+</article>
+{% endfor %}
+
+<!-- Example of listing services -->
+<h2>Services</h2>
+{% for service in services %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ service.provider }}</a>
+      <small class="text-muted">{{ service.date_posted }}</small>
+    </div>
+    <h2>
+      <a
+        class="article-title"
+        href="{{ url_for('servicedetails', service_id = service.id) }}"
+        >{{ service.title }}</a
+      >
+    </h2>
+    <p class="article-content">{{ service.description }}</p>
+  </div>
+</article>
+{% endfor %}
+
+{% endblock content %}
