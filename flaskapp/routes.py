@@ -2,7 +2,7 @@ import os
 import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
-from flaskapp import app, db, bcrypt
+from flaskapp import app, db, bcrypt, socketio
 from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, CategoryEnum
 
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
@@ -11,6 +11,7 @@ from sqlalchemy import or_
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from functools import wraps
+from flask_socketio import emit, join_room, leave_room
 
 
 
@@ -529,12 +530,29 @@ def mark_completed(order_id):
     flash('Order status updated to "Completed".', 'success')
     return redirect(url_for('accepted_orders'))
 
-@app.route('/chat/<int:order_id>', methods=['GET', 'POST'])
+@app.route('/chat')
 @login_required
-def chat(order_id):
-    # Logic to handle chat functionality for the given order
-    order = Order.query.get_or_404(order_id)
-    # Verify user has permission to access the order
-    if order.customer_id != current_user.id and order.service_provider_id != current_user.id:
-        abort(403)
-    return render_template('chat.html', order=order)
+def chat():
+    return render_template('chat.html', title='Chat')
+
+# Handle a user joining a chat room
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    username = current_user.username
+    join_room(room)
+    emit('message', {'msg': f'{username} has joined the room.'}, room=room)
+
+# Handle a user leaving a chat room
+@socketio.on('leave')
+def on_leave(data):
+    room = data['room']
+    username = current_user.username
+    leave_room(room)
+    emit('message', {'msg': f'{username} has left the room.'}, room=room)
+
+# Handle messages sent by users
+@socketio.on('send_message')
+def handle_message(data):
+    room = data['room']
+    emit('message', {'username': current_user.username, 'msg': data['msg']}, room=room)

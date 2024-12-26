@@ -28,7 +28,7 @@
         <span class="badge badge-info">{{ order.status.value }}</span>
         {% if order.status.value in ['accepted', 'on the way', 'reached'] %}
         <a
-          href="{{ url_for('chat', order_id=order.id) }}"
+          href="{{ url_for('chat') }}"
           class="btn btn-sm btn-outline-secondary ml-3"
         >
           Chat
