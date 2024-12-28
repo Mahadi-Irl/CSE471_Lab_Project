@@ -5,7 +5,18 @@
         <p><strong>Price:</strong> ${{ details.ser_price }}</p>
         <p><strong>Date:</strong> {{ details.date_posted.strftime('%Y-%m-%d') }}</p>
         <p><strong>Description:</strong> {{ details.description }}</p>
+
+
+        {% if avg_rating is not none %}
+        <p><strong>Average Rating:</strong> {{ avg_rating|round(1) }} / 5</p>
+        {% else %}
+        <p><strong>Rating:</strong> No ratings yet</p>
+        {% endif %}
+
+    
         <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
         <a href="{{ url_for('placeorder', service_id = details.id) }}" class="btn btn-secondary">Book an order</a>
+        <a href="{{ url_for('view_reviews', service_id = details.id) }}" class="btn btn-secondary">See Reviews</a>
     </div>
 {% endblock content %}
+

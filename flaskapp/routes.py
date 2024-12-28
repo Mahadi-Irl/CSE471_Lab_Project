@@ -26,6 +26,8 @@ def home():
     return render_template('home.html', services = servicesList)
 
 
+
+
 @app.route("/about")
 def about():
     return render_template('about.html', title='About')
@@ -52,11 +54,27 @@ def getservices():
     return obj
 
 
-@app.route('/servicedetails/<int:service_id>')
+# @app.route('/servicedetails/<int:service_id>')
+# def servicedetails(service_id):
+#     services = Service.query.filter_by(id=service_id).first()
+#     ref = request.referrer
+#     return render_template('service_details.html', details=services, referrer=ref)
+@app.route("/service/<int:service_id>")
 def servicedetails(service_id):
-    services = Service.query.filter_by(id=service_id).first()
-    ref = request.referrer
-    return render_template('service_details.html', details=services, referrer=ref)
+    # Fetch service details
+    details = Service.query.get_or_404(service_id)
+
+    # Fetch all orders related to this service
+    orders = Order.query.filter_by(ser_id=service_id).all()
+
+    # Calculate the average rating
+    if orders:
+        valid_ratings = [order.rate for order in orders if order.rate is not None]
+        avg_rating = sum(valid_ratings) / len(valid_ratings) if valid_ratings else None
+    else:
+        avg_rating = None
+
+    return render_template('service_details.html', details=details, avg_rating=avg_rating)
     
 @app.route("/register", methods=['GET', 'POST'])
 def register():
@@ -338,3 +356,14 @@ def review_order(order_id):
         return redirect(url_for('review_order', order_id=order_id)) 
 
     return render_template('review_order.html', order=order)
+
+@app.route("/service/<int:service_id>/view_reviews")
+def view_reviews(service_id):
+
+    orders = Order.query.filter_by(ser_id=service_id).all()
+
+  
+    reviews = [{"review": order.review, "rate": order.rate, "customer": User.query.get(order.customer_id).username}
+               for order in orders if order.review]
+
+    return render_template('view_reviews.html', reviews=reviews, service_id=service_id)
