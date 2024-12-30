@@ -3,9 +3,8 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt, socketio
-from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, CategoryEnum
-
-from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category, Subcategory
+from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, CategoryForm, SubcategoryForm, DeleteCategoryForm, DeleteSubcategoryForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
@@ -44,7 +43,68 @@ def admin_dashboard():
     services = Service.query.all()
     unresolved_complaints = Complaint.query.filter_by(resolved=False).all()
     resolved_complaints = Complaint.query.filter_by(resolved=True).all()
-    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints)
+    categories = Category.query.all()
+    subcategories = Subcategory.query.all()
+    category_form = CategoryForm()
+    subcategory_form = SubcategoryForm()
+    delete_category_form = DeleteCategoryForm()
+    delete_subcategory_form = DeleteSubcategoryForm()
+    subcategory_form.category.choices = [(c.id, c.name) for c in categories]
+    delete_category_form.category.choices = [(c.id, c.name) for c in categories]
+    delete_subcategory_form.subcategory.choices = [(s.id, s.name) for s in subcategories]
+    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints, category_form=category_form, subcategory_form=subcategory_form, delete_category_form=delete_category_form, delete_subcategory_form=delete_subcategory_form)
+
+@app.route("/add_category", methods=['POST'])
+@login_required
+@admin_required
+def add_category():
+    form = CategoryForm()
+    if form.validate_on_submit():
+        category = Category(name=form.name.data)
+        db.session.add(category)
+        db.session.commit()
+        flash('Category has been added!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/add_subcategory", methods=['POST'])
+@login_required
+@admin_required
+def add_subcategory():
+    form = SubcategoryForm()
+    if form.validate_on_submit():
+        subcategory = Subcategory(name=form.name.data, category_id=form.category.data)
+        db.session.add(subcategory)
+        db.session.commit()
+        flash('Subcategory has been added!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/delete_category", methods=['POST'])
+@login_required
+@admin_required
+def delete_category():
+    form = DeleteCategoryForm()
+    if form.validate_on_submit():
+        category = Category.query.get(form.category.data)
+        db.session.delete(category)
+        db.session.commit()
+        flash('Category has been deleted!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/delete_subcategory", methods=['POST'])
+@login_required
+@admin_required
+def delete_subcategory():
+    form = DeleteSubcategoryForm()
+    if form.validate_on_submit():
+        subcategory = Subcategory.query.get(form.subcategory.data)
+        db.session.delete(subcategory)
+        db.session.commit()
+        flash('Subcategory has been deleted!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_dashboard'))
 
 @app.route("/complaint/<int:complaint_id>")
 @login_required
@@ -99,22 +159,21 @@ def about():
 
 
 def getservices():
-    categories = db.session.query(Service.category).distinct().all()
+    categories = db.session.query(Category).all()
     obj = {}
-    for cat in categories:
-        category = cat[0] 
-        
+    for category in categories:
         top_service = (
-            db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
+            db.session.query(Service)
+            .filter(Service.category_id == category.id)
+            .order_by(Service.ratings.desc())
+            .first()
         )
         if top_service:
-            obj[category.value] = { 
+            obj[category.name] = {
                 "id": top_service.id,
                 "title": top_service.title,
                 "description": top_service.description,
                 "price": top_service.ser_price,
-                "ratings": top_service.ratings,
-                "duration": top_service.duration,
             }
     return obj
 

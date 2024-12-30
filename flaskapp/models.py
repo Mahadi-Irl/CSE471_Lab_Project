@@ -4,11 +4,9 @@ from flask_login import UserMixin
 from enum import Enum
 from sqlalchemy.orm import validates
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,7 +21,6 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
-
 class ServiceProvider(db.Model):
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     nid = db.Column(db.String(50), unique=True, nullable=False)
@@ -35,22 +32,26 @@ class ServiceProvider(db.Model):
     def __repr__(self):
         return f"ServiceProvider('{self.nid}', '{self.bio}')"
 
-
 class ServiceProviderService(db.Model):
     __tablename__ = 'service_provider_service'
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), primary_key=True)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), primary_key=True)
 
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    subcategories = db.relationship('Subcategory', backref='category', lazy=True)
 
+    def __repr__(self):
+        return f"Category('{self.name}')"
 
+class Subcategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
-
-class CategoryEnum(Enum):
-    ELECTRONICS = 'AC Servicing'
-    FASHION = 'Salon Care'
-    HOME = 'Home Cleaning'
-    BOOKS = 'Stationary Services'
-    SPORTS = 'Practice Matches'
+    def __repr__(self):
+        return f"Subcategory('{self.name}', '{self.category.name}')"
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -60,23 +61,21 @@ class Service(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
     provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  
     ratings = db.Column(db.Integer, nullable=False)
-    category = db.Column(db.Enum(CategoryEnum), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    subcategory_id = db.Column(db.Integer, db.ForeignKey('subcategory.id'), nullable=True)
     duration = db.Column(db.Integer, nullable = False)
     ser_price = db.Column(db.Float, nullable=False)
-
 
     orders = db.relationship('Order', backref='linked_service', lazy=True) 
     
     def __repr__(self):
-        return f'<Service {self.id},Title: {self.title}, Category: {self.category.value}, Date: {self.date_posted}>'
+        return f'<Service {self.id},Title: {self.title}, Category: {self.category.name}, Date: {self.date_posted}>'
     
     def set_ratings(self, value):
         if 0 <= value <= 5:
             self.ratings = value
         else:
             raise ValueError("Ratings must be between 0 and 5") 
-
-
 
 class OrderStatus(Enum):
     pending = 'pending'
@@ -86,11 +85,9 @@ class OrderStatus(Enum):
     completed = 'completed'
     rejected = 'rejected'
 
-
 class NotificationStatus(Enum):
     not_viewed = 'not viewed'
     viewed = 'viewed'
-    
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -104,19 +101,14 @@ class Order(db.Model):
     ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
-    latitude = db.Column(db.Float)  # Add this field
+    latitude = db.Column(db.Float)  
     longitude = db.Column(db.Float)
-    
-    #review = db.Column(db.String(500), nullable=True)  
-    #rate = db.Column(db.Float, nullable=True)  
-    rate = db.Column(db.Integer, nullable=True)  # Add this line
-    review = db.Column(db.Text, nullable=True)  # Add this line
+    rate = db.Column(db.Integer, nullable=True)  
+    review = db.Column(db.Text, nullable=True)  
 
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
         return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'
-
-
 
 class Complaint(db.Model):
     id = db.Column(db.Integer, primary_key=True)

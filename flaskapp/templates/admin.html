@@ -37,39 +37,60 @@
 </article>
 {% endfor %}
 
-<!-- Example of listing users -->
-<h2>Users</h2>
-{% for user in users %}
-<article class="media content-section">
-  <div class="media-body">
-    <div class="article-metadata">
-      <a class="mr-2" href="#">{{ user.username }}</a>
-      <small class="text-muted">{{ user.email }}</small>
-    </div>
-    <p class="article-content">Admin: {{ user.is_admin }}</p>
+<!-- Add Category -->
+<h3>Add Category</h3>
+<form method="POST" action="{{ url_for('add_category') }}">
+  {{ category_form.hidden_tag() }}
+  <div class="form-group">
+    {{ category_form.name.label(class="form-control-label") }}
+    {{ category_form.name(class="form-control") }}
   </div>
-</article>
-{% endfor %}
+  <div class="form-group">
+    {{ category_form.submit(class="btn btn-primary") }}
+  </div>
+</form>
 
-<!-- Example of listing services -->
-<h2>Services</h2>
-{% for service in services %}
-<article class="media content-section">
-  <div class="media-body">
-    <div class="article-metadata">
-      <a class="mr-2" href="#">{{ service.provider }}</a>
-      <small class="text-muted">{{ service.date_posted }}</small>
-    </div>
-    <h2>
-      <a
-        class="article-title"
-        href="{{ url_for('servicedetails', service_id = service.id) }}"
-        >{{ service.title }}</a
-      >
-    </h2>
-    <p class="article-content">{{ service.description }}</p>
+<!-- Add Subcategory -->
+<h3>Add Subcategory</h3>
+<form method="POST" action="{{ url_for('add_subcategory') }}">
+  {{ subcategory_form.hidden_tag() }}
+  <div class="form-group">
+    {{ subcategory_form.name.label(class="form-control-label") }}
+    {{ subcategory_form.name(class="form-control") }}
   </div>
-</article>
-{% endfor %}
+  <div class="form-group">
+    {{ subcategory_form.category.label(class="form-control-label") }}
+    {{ subcategory_form.category(class="form-control") }}
+  </div>
+  <div class="form-group">
+    {{ subcategory_form.submit(class="btn btn-primary") }}
+  </div>
+</form>
+
+<!-- Delete Category -->
+<h3>Delete Category</h3>
+<form method="POST" action="{{ url_for('delete_category') }}">
+  {{ delete_category_form.hidden_tag() }}
+  <div class="form-group">
+    {{ delete_category_form.category.label(class="form-control-label") }}
+    {{ delete_category_form.category(class="form-control") }}
+  </div>
+  <div class="form-group">
+    {{ delete_category_form.submit(class="btn btn-danger") }}
+  </div>
+</form>
+
+<!-- Delete Subcategory -->
+<h3>Delete Subcategory</h3>
+<form method="POST" action="{{ url_for('delete_subcategory') }}">
+  {{ delete_subcategory_form.hidden_tag() }}
+  <div class="form-group">
+    {{ delete_subcategory_form.subcategory.label(class="form-control-label") }}
+    {{ delete_subcategory_form.subcategory(class="form-control") }}
+  </div>
+  <div class="form-group">
+    {{ delete_subcategory_form.submit(class="btn btn-danger") }}
+  </div>
+</form>
 
 {% endblock content %}
