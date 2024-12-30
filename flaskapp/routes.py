@@ -61,13 +61,12 @@ def getservices():
 #     return render_template('service_details.html', details=services, referrer=ref)
 @app.route("/service/<int:service_id>")
 def servicedetails(service_id):
-    # Fetch service details
+   
     details = Service.query.get_or_404(service_id)
 
-    # Fetch all orders related to this service
     orders = Order.query.filter_by(ser_id=service_id).all()
 
-    # Calculate the average rating
+   
     if orders:
         valid_ratings = [order.rate for order in orders if order.rate is not None]
         avg_rating = sum(valid_ratings) / len(valid_ratings) if valid_ratings else None
@@ -298,7 +297,31 @@ def placeorder(service_id):
 
 
 
-@app.route('/submitOrder', methods = ['POST'])
+# @app.route('/submitOrder', methods = ['POST'])
+# def postorder():
+#     if request.method == 'POST':
+#         location = request.form.get('location')
+#         date_time = datetime.fromisoformat(request.form.get('datetime'))
+#         price = request.form.get('price', type=float)
+#         service_id = request.form.get('service_id', type=int)
+#         service_provider_id = request.form.get('service_provider_id', type=int)
+
+    
+#     if not location or not date_time or not price:
+#         flash("All fields are required!", "danger")
+#         return redirect('/submitOrder')
+
+
+   
+#     new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
+
+#     db.session.add(new_order)
+#     db.session.commit()
+
+#     flash("Order submitted successfully!", "success")
+#     return redirect(url_for('alluserorders'))
+
+@app.route('/submitOrder', methods=['POST'])
 def postorder():
     if request.method == 'POST':
         location = request.form.get('location')
@@ -307,19 +330,24 @@ def postorder():
         service_id = request.form.get('service_id', type=int)
         service_provider_id = request.form.get('service_provider_id', type=int)
 
-    
-    if not location or not date_time or not price:
-        flash("All fields are required!", "danger")
-        return redirect('/submitOrder')
+        if not location or not date_time or not price:
+            flash("All fields are required!", "danger")
+            return redirect('/submitOrder')
 
-   
-    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
+        new_order = Order(
+            order_loc=location,
+            order_datetime=date_time,
+            price=price,
+            ser_id=service_id,
+            service_provider_id=service_provider_id,
+            customer_id=current_user.id,
+        )
 
-    db.session.add(new_order)
-    db.session.commit()
+        db.session.add(new_order)
+        db.session.commit()
 
-    flash("Order submitted successfully!", "success")
-    return redirect(url_for('alluserorders'))
+        flash("Order submitted successfully!", "success")
+        return redirect(url_for('payment', order_id=new_order.id))
     
 
 from flaskapp.models import User, ServiceProvider, Service, Order, OrderStatus
@@ -367,3 +395,102 @@ def view_reviews(service_id):
                for order in orders if order.review]
 
     return render_template('view_reviews.html', reviews=reviews, service_id=service_id)
+
+# @app.route('/payment/<int:order_id>', methods=['GET', 'POST'])
+# @login_required
+# def payment(order_id):
+   
+#     order = Order.query.get_or_404(order_id)
+
+#     if order.customer_id != current_user.id:
+#         flash("Unauthorized access to payment.", "danger")
+#         return redirect(url_for('alluserorders'))
+
+   
+#     service = Service.query.get_or_404(order.ser_id) 
+
+    
+   
+#     return render_template(
+#         'payment.html',
+#         details=service,
+#         location=order.order_loc,
+#         datetime=order.order_datetime,
+#         price=order.price,
+#         order_id=order.id
+#     )
+
+@app.route('/payment/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def payment(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access to payment.", "danger")
+        return redirect(url_for('alluserorders'))
+
+   
+    if request.method == 'POST':
+        payment_method = request.form.get('payment_method')
+
+        if not payment_method:
+            flash("Please select a payment method.", "danger")
+            return redirect(url_for('payment', order_id=order_id))
+
+        if payment_method == "Cash":
+            flash("Payment successful using Cash.", "success")
+          
+            return redirect(url_for('alluserorders'))
+
+        elif payment_method == "Credit Card":
+            return redirect(url_for('credit_card_payment', order_id=order_id))
+
+        elif payment_method == "Mobile Payment":
+            return redirect(url_for('mobile_payment', order_id=order_id))
+
+   
+    service = Service.query.get_or_404(order.ser_id)
+    return render_template(
+        'payment.html',
+        details=service,
+        order_id=order.id,
+        location=order.order_loc,
+        datetime=order.order_datetime,
+        price=order.price
+    )
+
+@app.route('/payment/credit_card/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def credit_card_payment(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('alluserorders'))
+
+    if request.method == 'POST':
+
+        flash("Payment successful using Credit Card.", "success")
+      
+        return redirect(url_for('alluserorders'))
+
+    return render_template('credit_card_payment.html', order=order)
+
+@app.route('/payment/mobile/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def mobile_payment(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('alluserorders'))
+
+    if request.method == 'POST':
+ 
+        flash("Payment successful using Mobile Payment.", "success")
+
+        return redirect(url_for('alluserorders'))
+
+    return render_template('mobile_payment.html', order=order)
