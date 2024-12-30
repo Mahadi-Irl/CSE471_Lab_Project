@@ -535,3 +535,41 @@ def review_order(order_id):
         flash('Your review has been submitted.', 'success')
         return redirect(url_for('order_details', order_id=order.id))
     return render_template('ordersdetails.html', order=order, form=form)
+
+@app.route('/analytics')
+@login_required
+def analytics():
+
+    service_provider_id = current_user.id  
+
+  
+    total_orders = Order.query.filter_by(service_provider_id=service_provider_id).count()
+
+
+    total_revenue = (
+        db.session.query(db.func.sum(Order.price))
+        .filter_by(service_provider_id=service_provider_id)
+        .scalar()
+        or 0.0
+    )
+
+    most_requested_service_id = (
+        db.session.query(Order.ser_id, db.func.count(Order.ser_id))
+        .filter_by(service_provider_id=service_provider_id)
+        .group_by(Order.ser_id)
+        .order_by(db.func.count(Order.ser_id).desc())
+        .first()
+    )
+
+    most_requested_service = (
+        Service.query.get(most_requested_service_id[0]).title
+        if most_requested_service_id
+        else "N/A"
+    )
+
+    analytics_data = {
+        "total_orders": total_orders,
+        "revenue": total_revenue,
+        "most_requested_service": most_requested_service,
+    }
+    return render_template('analytics.html', data=analytics_data)
