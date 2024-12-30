@@ -2,14 +2,16 @@ import os
 import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
-from flaskapp import app, db, bcrypt
-from flaskapp.models import User, ServiceProvider, Service, CategoryEnum, OrderStatus, Order, Complaint, NotificationStatus
-from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm
+from flaskapp import app, db, bcrypt, socketio
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, CategoryEnum
+
+from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 from functools import wraps
+from flask_socketio import emit, join_room, leave_room
 
 
 
@@ -476,14 +478,8 @@ def view_orders():
     )
 
     
-@app.route("/order/<int:order_id>")
-@login_required
-def order_details(order_id):
-    order = Order.query.get_or_404(order_id)
-    service = Service.query.get_or_404(order.ser_id)
-    customer = User.query.get_or_404(order.customer_id)
-    form = ReviewForm()
-    return render_template('ordersdetails.html', order=order, service=service, customer=customer, form=form)
+
+
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
 @login_required
@@ -519,19 +515,51 @@ def mark_completed(order_id):
     flash('Order status updated to "Completed".', 'success')
     return redirect(url_for('accepted_orders'))
 
-
-
-@app.route("/review/<int:order_id>/", methods=['POST'])
+@app.route('/chat')
 @login_required
-def review_order(order_id):
-    order = Order.query.get_or_404(order_id)
-    #if order.customer_id != current_user.id:
-        #abort(403)
-    form = ReviewForm()
-    if form.validate_on_submit():
-        order.rate = form.rate.data
-        order.review = form.review.data
-        db.session.commit()
-        flash('Your review has been submitted.', 'success')
-        return redirect(url_for('order_details', order_id=order.id))
-    return render_template('ordersdetails.html', order=order, form=form)
+def chat():
+    return render_template('chat.html', title='Chat')
+
+# Handle a user joining a chat room
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    username = current_user.username
+    join_room(room)
+    emit('message', {'msg': f'{username} has joined the room.'}, room=room)
+
+# Handle a user leaving a chat room
+@socketio.on('leave')
+def on_leave(data):
+    room = data['room']
+    username = current_user.username
+    leave_room(room)
+    emit('message', {'msg': f'{username} has left the room.'}, room=room)
+
+# Handle messages sent by users
+@socketio.on('send_message')
+def handle_message(data):
+    room = data['room']
+    emit('message', {'username': current_user.username, 'msg': data['msg']}, room=room)
+
+
+@app.route('/order/<int:order_id>')
+def order_details(order_id):
+    order = Order.query.get(order_id)
+    service_provider = ServiceProvider.query.get(order.service_provider_id)
+
+    # Initial coordinates
+    sp_lat, sp_lon = service_provider.latitude, service_provider.longitude
+    order_lat, order_lon = order.latitude, order.longitude
+
+    return render_template(
+        'ordersdetails.html',
+        order=order,
+        service_provider=service_provider,
+        service=order.service,
+        customer=order.customer,
+        sp_lat=sp_lat,
+        sp_lon=sp_lon,
+        order_lat=order_lat,
+        order_lon=order_lon
+    )

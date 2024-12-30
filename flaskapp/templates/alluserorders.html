@@ -23,9 +23,19 @@
         </a>
         {% endif %}
       </div>
-      <!-- Display status and date -->
-      <span class="badge badge-info">{{ order.status.value }}</span>
-      <small class="text-muted">{{ order.order_datetime.strftime('%Y-%m-%d') }}</small>
+      <!-- Display status, date, and conditional Chat button -->
+      <div class="d-flex align-items-center">
+        <span class="badge badge-info">{{ order.status.value }}</span>
+        {% if order.status.value in ['accepted', 'on the way', 'reached'] %}
+        <a
+          href="{{ url_for('chat') }}"
+          class="btn btn-sm btn-outline-secondary ml-3"
+        >
+          Chat
+        </a>
+        {% endif %}
+        <small class="text-muted ml-3">{{ order.order_datetime.strftime('%Y-%m-%d') }}</small>
+      </div>
     </li>
     {% endfor %}
   </ul>

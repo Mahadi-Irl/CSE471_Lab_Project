@@ -33,6 +33,14 @@
                                     {{ order.status.value }}
                                 </span>
                             </p>
+                            {% if order.status.value in ['accepted', 'on_the_way', 'reached'] %}
+                                <!-- Chat Button -->
+                                <a 
+                                    href="{{ url_for('chat') }}" 
+                                    class="btn btn-outline-info mt-3">
+                                    Chat
+                                </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -82,5 +90,6 @@
     {% endif %}
 </div>
 {% endblock %}
+
 
 
