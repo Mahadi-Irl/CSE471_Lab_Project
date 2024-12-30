@@ -478,22 +478,7 @@ def view_orders():
     )
 
     
-@app.route('/order_details/<int:order_id>')
-def order_details(order_id):
-    order = Order.query.get_or_404(order_id)
 
-    # Fetch related customer and service details
-    customer = User.query.get_or_404(order.customer_id)
-    service = Service.query.get_or_404(order.ser_id)
-
-    ref = request.referrer
-    return render_template(
-        'ordersdetails.html',
-        order=order,
-        customer=customer,
-        service=service,
-        referrer=ref
-    )
 
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
@@ -556,3 +541,25 @@ def on_leave(data):
 def handle_message(data):
     room = data['room']
     emit('message', {'username': current_user.username, 'msg': data['msg']}, room=room)
+
+
+@app.route('/order/<int:order_id>')
+def order_details(order_id):
+    order = Order.query.get(order_id)
+    service_provider = ServiceProvider.query.get(order.service_provider_id)
+
+    # Initial coordinates
+    sp_lat, sp_lon = service_provider.latitude, service_provider.longitude
+    order_lat, order_lon = order.latitude, order.longitude
+
+    return render_template(
+        'ordersdetails.html',
+        order=order,
+        service_provider=service_provider,
+        service=order.service,
+        customer=order.customer,
+        sp_lat=sp_lat,
+        sp_lon=sp_lon,
+        order_lat=order_lat,
+        order_lon=order_lon
+    )

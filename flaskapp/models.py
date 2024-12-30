@@ -29,6 +29,8 @@ class ServiceProvider(db.Model):
     nid = db.Column(db.String(50), unique=True, nullable=False)
     bio = db.Column(db.Text, nullable=True)
     services = db.relationship('Service', backref='provider', lazy=True)
+    latitude = db.Column(db.Float)  
+    longitude = db.Column(db.Float)
 
     def __repr__(self):
         return f"ServiceProvider('{self.nid}', '{self.bio}')"
@@ -102,6 +104,8 @@ class Order(db.Model):
     ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
+    latitude = db.Column(db.Float)  # Add this field
+    longitude = db.Column(db.Float)
     
     review = db.Column(db.String(500), nullable=True)  
     rate = db.Column(db.Float, nullable=True)  
