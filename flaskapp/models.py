@@ -28,10 +28,10 @@ class ServiceProvider(db.Model):
     services = db.relationship('Service', backref='provider', lazy=True)
     latitude = db.Column(db.Float)  
     longitude = db.Column(db.Float)
+    verified = db.Column(db.Boolean, nullable=False, default=False)
 
     def __repr__(self):
-        return f"ServiceProvider('{self.nid}', '{self.bio}')"
-
+        return f"ServiceProvider('{self.nid}', '{self.bio}', verified={self.verified})"
 class ServiceProviderService(db.Model):
     __tablename__ = 'service_provider_service'
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), primary_key=True)

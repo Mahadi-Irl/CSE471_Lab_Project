@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="content-section">
+    <h2>Service Provider Details</h2>
+    <p><strong>Username:</strong> {{ provider.user.username }}</p>
+    <p><strong>Email:</strong> {{ provider.user.email }}</p>
+    <p><strong>NID:</strong> {{ provider.nid }}</p>
+    <p><strong>Bio:</strong> {{ provider.bio }}</p>
+    <p><strong>Latitude:</strong> {{ provider.latitude }}</p>
+    <p><strong>Longitude:</strong> {{ provider.longitude }}</p>
+    <p><strong>Verified:</strong> {{ provider.verified }}</p>
+
+    <form method="POST">
+        <button type="submit" name="verify" class="btn btn-success">Verify</button>
+        <button type="submit" name="unverify" class="btn btn-danger">Do Not Verify</button>
+    </form>
+</div>
+{% endblock %}

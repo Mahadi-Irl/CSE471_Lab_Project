@@ -153,6 +153,30 @@ def warn_service_provider(complaint_id):
     return redirect(url_for('admin_dashboard'))
 
 
+@app.route("/admin/unverified_service_providers")
+@login_required
+@admin_required
+def unverified_service_providers():
+    unverified_providers = ServiceProvider.query.filter_by(verified=False).all()
+    return render_template('unverified_service_providers.html', unverified_providers=unverified_providers)
+
+@app.route("/admin/verify_service_provider/<int:provider_id>", methods=['GET', 'POST'])
+@login_required
+@admin_required
+def verify_service_provider(provider_id):
+    provider = ServiceProvider.query.get_or_404(provider_id)
+    if request.method == 'POST':
+        if 'verify' in request.form:
+            provider.verified = True
+            flash('Service provider has been verified.', 'success')
+        elif 'unverify' in request.form:
+            provider.verified = False
+            flash('Service provider has not been verified.', 'danger')
+        db.session.commit()
+        return redirect(url_for('unverified_service_providers'))
+    return render_template('verify_service_provider.html', provider=provider)
+
+
 @app.route("/about")
 def about():
     return render_template('about.html', title='About')
