@@ -45,3 +45,7 @@ class ReviewForm(FlaskForm):
     rate = IntegerField('Rate', validators=[DataRequired(), NumberRange(min=1, max=5)])
     review = TextAreaField('Review', validators=[DataRequired()])
     submit = SubmitField('Submit Review')
+
+class ComplaintForm(FlaskForm):
+    complaint = TextAreaField('Complaint', validators=[DataRequired()])
+    submit = SubmitField('Submit Complaint')

@@ -94,6 +94,7 @@ class Order(db.Model):
     price = db.Column(db.Float, nullable=False)
     notifications = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.not_viewed)
     ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
+    service = db.relationship('Service', backref='service_orders', lazy=True)  # Renamed backref
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
     latitude = db.Column(db.Float)

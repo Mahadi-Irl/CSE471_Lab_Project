@@ -4,7 +4,7 @@ from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt, socketio
 from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category
-from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm
+from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm, ComplaintForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
@@ -178,7 +178,7 @@ def delete_category(category_id):
 @admin_required
 def view_complaint(complaint_id):
     complaint = Complaint.query.get_or_404(complaint_id)
-    order = Order.query.get_or_404(complaint.order_id)
+    order = Order.query.options(joinedload(Order.service)).get_or_404(complaint.order_id)
     return render_template('complaint_details.html', complaint=complaint, order=order)
 
 @app.route("/complaint/<int:complaint_id>/refund", methods=['POST'])
@@ -227,37 +227,6 @@ def servicedetails(service_id):
     else:
         avg_rating = None
     return render_template('service_details.html', details=details, avg_rating=avg_rating)
-
-@app.route("/register", methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Your account has been created! You are now able to log in', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', title='Register', form=form)
-
-@app.route("/login", methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)
-            # Ensure is_service_provider is set correctly
-            print(f"User is_service_provider: {user.is_service_provider}")
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('home'))
-        else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html', title='Login', form=form)
 
 @app.route('/join')
 @login_required
@@ -311,8 +280,6 @@ def become_service_provider():
         flash('You are now a service provider! Please wait for admin approval.', 'success')
         return redirect(url_for('home'))
 
-
-#search
 @app.route('/search_result', methods=['GET'])
 def search_result():
     query = request.args.get('query', '').split()
@@ -340,75 +307,46 @@ def search_result():
 
     return render_template('search_results.html', result=results)
 
-
-
-@app.route("/logout")
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
-
-
-def save_picture(form_picture):
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_fn = random_hex + f_ext
-    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
-
-    output_size = (125, 125)
-    i = Image.open(form_picture)
-    i.thumbnail(output_size)
-    i.save(picture_path)
-
-    return picture_fn
-
-
 @app.route('/alluserorders')
 @login_required
 def alluserorders():
-
     orders = (
-    db.session.query(Order, Service)
-    .join(Service, Order.ser_id == Service.id)  
-    .filter(Order.customer_id == current_user.id)  
-    .all()  
-)
+        db.session.query(Order, Service)
+        .join(Service, Order.ser_id == Service.id)  
+        .filter(Order.customer_id == current_user.id)  
+        .all()  
+    )
 
     combined_details = [
-    {
-        'id': order.id,
-        'price': order.price,
-        'order_datetime': order.order_datetime,
-        'status': order.status,
-        'service_title': service.title,
-    }
-    for order, service in orders
-]
+        {
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+        }
+        for order, service in orders
+    ]
 
     return render_template('alluserorders.html', orders=combined_details)
-
-
-
 
 @app.route('/userorderdetails/<int:order_id>')
 @login_required
 def userorderdetails(order_id):
-
     orders = (
-    db.session.query(Order, Service)
-    .join(Service, Order.ser_id == Service.id)  
-    .filter(Order.id == order_id).first()
-)
+        db.session.query(Order, Service)
+        .join(Service, Order.ser_id == Service.id)  
+        .filter(Order.id == order_id).first()
+    )
     if orders:
         order, service = orders  
         combined_details = {
-        'id': order.id,
-        'price': order.price,
-        'order_datetime': order.order_datetime,
-        'status': order.status,
-        'service_title': service.title,
-    }
-
-
+            'id': order.id,
+            'price': order.price,
+            'order_datetime': order.order_datetime,
+            'status': order.status,
+            'service_title': service.title,
+        }
 
     if not orders:
         flash('Order not found', 'danger')
@@ -416,41 +354,12 @@ def userorderdetails(order_id):
 
     return render_template('userorderdetails.html', details=combined_details)
 
-
-
-
-@app.route("/account", methods=['GET', 'POST'])
-@login_required
-def account():
-    form = UpdateAccountForm()
-    if form.validate_on_submit():
-        if form.picture.data:
-            picture_file = save_picture(form.picture.data)
-            current_user.image_file = picture_file
-        current_user.username = form.username.data
-        current_user.email = form.email.data
-        db.session.commit()
-        flash('Your account has been updated!', 'success')
-        return redirect(url_for('account'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username
-        form.email.data = current_user.email
-    image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
-    return render_template('account.html', title='Account', image_file=image_file, form=form)
-
-
-
-
-
-
 @app.route('/placeorder/<int:service_id>')
 @login_required
 def placeorder(service_id):
     services = Service.query.filter_by(id=service_id).first()
     ref = request.referrer
     return render_template('orderform.html', details=services, referrer=ref)
-
-
 
 @app.route('/submitOrder', methods=['POST'])
 def postorder():
@@ -479,14 +388,10 @@ def postorder():
         flash("Order submitted successfully!", 'success')
         return redirect(url_for('payment', order_id=new_order.id))
 
-
-
 @app.route('/notification')
 def notification():
-
     checkprovider = ServiceProvider.query.filter_by(id = current_user.id).first()
     if checkprovider:
-
         note = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'not_viewed', Order.service_provider_id == checkprovider.id).all())
         notes = [{
             'id': order.id,
@@ -495,7 +400,7 @@ def notification():
             'status': order.status,
             'service_title': service.title,
             'loc' : order.order_loc,
-            } for order, service in note]
+        } for order, service in note]
 
         viewed = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'viewed', Order.service_provider_id == checkprovider.id).all())
         views = [{
@@ -505,8 +410,7 @@ def notification():
             'status': order.status,
             'service_title': service.title,
             'loc' : order.order_loc,
-            } for order, service in viewed]
-
+        } for order, service in viewed]
     else:
         notes = None
         views = None
@@ -520,17 +424,11 @@ def updateNotification(order_id):
     if order.notifications == NotificationStatus.not_viewed:
         order.notifications = NotificationStatus.viewed
         db.session.commit()
-
-
     else:
         order.notifications = NotificationStatus.not_viewed
         db.session.commit()
 
-
     return redirect(url_for('notification'))
-
-
-
 
 @app.route('/acceptOrder/<int:order_id>')
 def acceptOrder(order_id):
@@ -542,8 +440,6 @@ def acceptOrder(order_id):
 
     return redirect(url_for('notification'))
 
-
-
 @app.route('/rejectOrder/<int:order_id>')
 def rejectOrder(order_id):
     order = Order.query.get_or_404(order_id)
@@ -553,6 +449,7 @@ def rejectOrder(order_id):
     flash('Order status updated to "Rejected".', 'success')
 
     return redirect(url_for('notification'))
+
 @app.route("/accepted_orders", methods=['GET', 'POST'], endpoint='accepted_orders')
 @login_required
 def view_orders():
@@ -585,10 +482,6 @@ def view_orders():
         accepted_orders=accepted_orders,
         completed_orders=completed_orders
     )
-
-
-
-
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
 @login_required
@@ -651,7 +544,6 @@ def handle_message(data):
     room = data['room']
     emit('message', {'username': current_user.username, 'msg': data['msg']}, room=room)
 
-
 @app.route('/order/<int:order_id>')
 def order_details(order_id):
     order = Order.query.get(order_id)
@@ -676,9 +568,7 @@ def order_details(order_id):
 
 @app.route("/service/<int:service_id>/view_reviews")
 def view_reviews(service_id):
-
     orders = Order.query.filter_by(ser_id=service_id).all()
-
 
     reviews = [{"review": order.review, "rate": order.rate, "customer": User.query.get(order.customer_id).username}
                for order in orders if order.review]
@@ -722,15 +612,12 @@ def payment(order_id):
 def credit_card_payment(order_id):
     order = Order.query.get_or_404(order_id)
 
-
     if order.customer_id != current_user.id:
         flash("Unauthorized access.", "danger")
         return redirect(url_for('alluserorders'))
 
     if request.method == 'POST':
-
         flash("Payment successful using Credit Card.", "success")
-
         return redirect(url_for('alluserorders'))
 
     return render_template('credit_card_payment.html', order=order)
@@ -745,9 +632,7 @@ def mobile_payment(order_id):
         return redirect(url_for('alluserorders'))
 
     if request.method == 'POST':
-
         flash("Payment successful using Mobile Payment.", "success")
-
         return redirect(url_for('alluserorders'))
 
     return render_template('mobile_payment.html', order=order)
@@ -772,12 +657,9 @@ def review_order(order_id):
 @app.route('/analytics')
 @login_required
 def analytics():
-
     service_provider_id = current_user.id  
 
-  
     total_orders = Order.query.filter_by(service_provider_id=service_provider_id).count()
-
 
     total_revenue = (
         db.session.query(db.func.sum(Order.price))
@@ -806,3 +688,17 @@ def analytics():
         "most_requested_service": most_requested_service,
     }
     return render_template('analytics.html', data=analytics_data)
+
+@app.route('/submit_complaint/<int:order_id>', methods=['POST'])
+@login_required
+def submit_complaint(order_id):
+    order = Order.query.get_or_404(order_id)
+    complaint_text = request.form.get('complaint')
+    if complaint_text:
+        complaint = Complaint(order_id=order.id, user_id=current_user.id, message=complaint_text)
+        db.session.add(complaint)
+        db.session.commit()
+        flash('Your complaint has been submitted.', 'success')
+    else:
+        flash('Please provide a complaint message.', 'danger')
+    return redirect(url_for('userorderdetails', order_id=order_id))
