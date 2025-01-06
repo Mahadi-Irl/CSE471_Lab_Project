@@ -133,54 +133,124 @@ def create_dummy_data():
     from flaskapp import db
     from flaskapp.models import User, ServiceProvider, Service, Order, Category, Complaint, Notification
     from datetime import datetime
+    import random
+
+    # Bengali names for users
+    bengali_names = [
+        'Arjun', 'Amit', 'Bijoy', 'Chandan', 'Dipak', 'Esha', 'Farhan', 'Gopal', 'Harun', 'Ishita',
+        'Jahid', 'Kabir', 'Liton', 'Mithun', 'Nadia', 'Omar', 'Puja', 'Quazi', 'Rana', 'Sima',
+        'Tuhin', 'Usha', 'Vikram', 'Wahid', 'Xavier', 'Yasmin', 'Zahid', 'Anika', 'Bithi', 'Chitra',
+        'Debashish', 'Elina', 'Fahim', 'Gita', 'Hassan', 'Indira', 'Joya', 'Kamal', 'Laila', 'Mona',
+        'Nafisa', 'Oishi', 'Parvez', 'Quamrul', 'Rafiq', 'Shima', 'Tanvir', 'Uday', 'Vivek', 'Wasim'
+    ]
 
     # Create dummy users
-    user1 = User(username='user1', email='user1@example.com', password='password', is_admin=False)
-    user2 = User(username='user2', email='user2@example.com', password='password', is_admin=False)
-    user3 = User(username='user3', email='user3@example.com', password='password', is_admin=False)
-    user4 = User(username='user4', email='user4@example.com', password='password', is_admin=False)
-    admin = User(username='admin', email='admin@example.com', password='password', is_admin=True)
-    db.session.add_all([user1, user2, user3, user4, admin])
+    users = []
+    for i in range(1, 51):
+        user = User(username=bengali_names[i-1], email=f'{bengali_names[i-1].lower()}@example.com', password='password', is_admin=(i == 1))
+        users.append(user)
+    db.session.add_all(users)
     db.session.commit()
 
     # Create dummy service providers
-    sp1 = ServiceProvider(id=user1.id, nid='123456789', bio='Service Provider 1 Bio', verified=True, latitude=23.8103, longitude=90.4125)  # Dhaka
-    sp2 = ServiceProvider(id=user2.id, nid='987654321', bio='Service Provider 2 Bio', verified=False, latitude=22.3475, longitude=91.8123)  # Chittagong
-    sp3 = ServiceProvider(id=user3.id, nid='112233445', bio='Service Provider 3 Bio', verified=True, latitude=24.3636, longitude=88.6241)  # Rajshahi
-    db.session.add_all([sp1, sp2, sp3])
+    service_providers = []
+    for i in range(1, 51):
+        sp = ServiceProvider(
+            id=users[i-1].id, 
+            nid=f'{random.randint(100000000, 999999999)}', 
+            bio=f'Service Provider {bengali_names[i-1]} Bio', 
+            verified=bool(random.getrandbits(1)), 
+            latitude=random.uniform(20.0, 26.0), 
+            longitude=random.uniform(88.0, 92.0)
+        )
+        service_providers.append(sp)
+    db.session.add_all(service_providers)
     db.session.commit()
 
-    # Create dummy categories
-    cat1 = Category(name='Cleaning')
-    cat2 = Category(name='Plumbing')
-    cat3 = Category(name='Electrical')
-    db.session.add_all([cat1, cat2, cat3])
+    # Actual names for categories
+    category_names = ['Cleaning', 'Plumbing', 'Electrical', 'Carpentry', 'Painting']
+    categories = [Category(name=name) for name in category_names]
+    db.session.add_all(categories)
     db.session.commit()
+
+    # Real service names matching categories
+    service_names = {
+        'Cleaning': ['House Cleaning', 'Office Cleaning', 'Window Cleaning', 'Carpet Cleaning', 'Deep Cleaning'],
+        'Plumbing': ['Leak Repair', 'Drain Cleaning', 'Pipe Installation', 'Water Heater Repair', 'Toilet Repair'],
+        'Electrical': ['Wiring Installation', 'Light Fixture Installation', 'Electrical Repair', 'Circuit Breaker Replacement', 'Outlet Installation'],
+        'Carpentry': ['Furniture Assembly', 'Cabinet Installation', 'Deck Building', 'Door Installation', 'Trim Work'],
+        'Painting': ['Interior Painting', 'Exterior Painting', 'Wallpaper Removal', 'Fence Painting', 'Deck Staining']
+    }
 
     # Create dummy services
-    service1 = Service(title='House Cleaning', description='Full house cleaning service', user_id=user1.id, provider_id=sp1.id, ratings=4, category_id=cat1.id, duration=2, ser_price=50.0)
-    service2 = Service(title='Pipe Fixing', description='Fixing all kinds of pipes', user_id=user2.id, provider_id=sp2.id, ratings=5, category_id=cat2.id, duration=1, ser_price=30.0)
-    service3 = Service(title='Electrical Repair', description='Repairing electrical issues', user_id=user3.id, provider_id=sp3.id, ratings=3, category_id=cat3.id, duration=3, ser_price=70.0)
-    db.session.add_all([service1, service2, service3])
+    services = []
+    for i in range(1, 51):
+        category = random.choice(categories)
+        service = Service(
+            title=random.choice(service_names[category.name]), 
+            description=f'{category.name} service description', 
+            user_id=users[i-1].id, 
+            provider_id=service_providers[i-1].id, 
+            ratings=random.randint(1, 5), 
+            category_id=category.id, 
+            duration=random.randint(1, 5), 
+            ser_price=random.randint(10, 100)  # Ensure ser_price is an integer
+        )
+        services.append(service)
+    db.session.add_all(services)
     db.session.commit()
 
+    # Names of locations in Bangladesh
+    bangladesh_locations = [
+        'Dhaka', 'Chittagong', 'Khulna', 'Rajshahi', 'Sylhet', 'Barisal', 'Rangpur', 'Comilla', 'Narayanganj', 'Gazipur',
+        'Mymensingh', 'Cox\'s Bazar', 'Jessore', 'Nawabganj', 'Bogra', 'Dinajpur', 'Pabna', 'Tangail', 'Kushtia', 'Faridpur',
+        'Noakhali', 'Feni', 'Brahmanbaria', 'Patuakhali', 'Jamalpur', 'Netrakona', 'Sherpur', 'Sunamganj', 'Habiganj', 'Maulvibazar',
+        'Lakshmipur', 'Chandpur', 'Kishoreganj', 'Manikganj', 'Munshiganj', 'Narsingdi', 'Shariatpur', 'Madaripur', 'Gopalganj', 'Jhalokathi',
+        'Barguna', 'Bhola', 'Pirojpur', 'Bandarban', 'Khagrachari', 'Rangamati', 'Bagerhat', 'Satkhira', 'Magura', 'Meherpur'
+    ]
+
     # Create dummy orders
-    order1 = Order(order_loc='123 Main St', order_datetime=datetime.utcnow(), status='pending', price=50.0, ser_id=service1.id, service_provider_id=sp1.id, customer_id=user2.id, latitude=23.8103, longitude=90.4125)  # Dhaka
-    order2 = Order(order_loc='456 Elm St', order_datetime=datetime.utcnow(), status='completed', price=30.0, ser_id=service2.id, service_provider_id=sp2.id, customer_id=user1.id, latitude=22.3475, longitude=91.8123)  # Chittagong
-    order3 = Order(order_loc='789 Oak St', order_datetime=datetime.utcnow(), status='accepted', price=70.0, ser_id=service3.id, service_provider_id=sp3.id, customer_id=user4.id, latitude=24.3636, longitude=88.6241)  # Rajshahi
-    db.session.add_all([order1, order2, order3])
+    orders = []
+    for i in range(1, 51):
+        order = Order(
+            order_loc=random.choice(bangladesh_locations), 
+            order_datetime=datetime.utcnow(), 
+            status=random.choice(list(OrderStatus)), 
+            price=random.uniform(10.0, 100.0), 
+            ser_id=services[i-1].id, 
+            service_provider_id=service_providers[i-1].id, 
+            customer_id=random.choice(users).id, 
+            latitude=random.uniform(20.0, 26.0), 
+            longitude=random.uniform(88.0, 92.0)
+        )
+        orders.append(order)
+    db.session.add_all(orders)
     db.session.commit()
 
     # Create dummy complaints
-    complaint1 = Complaint(order_id=order1.id, user_id=user2.id, message='Service was not satisfactory', date_posted=datetime.utcnow(), resolved=False)
-    complaint2 = Complaint(order_id=order3.id, user_id=user4.id, message='Service was delayed', date_posted=datetime.utcnow(), resolved=False)
-    db.session.add_all([complaint1, complaint2])
+    complaints = []
+    for i in range(1, 51):
+        complaint = Complaint(
+            order_id=random.choice(orders).id, 
+            user_id=random.choice(users).id, 
+            message=f'Complaint {i} message', 
+            date_posted=datetime.utcnow(), 
+            resolved=bool(random.getrandbits(1))
+        )
+        complaints.append(complaint)
+    db.session.add_all(complaints)
     db.session.commit()
 
     # Create dummy notifications
-    notification1 = Notification(user_id=user1.id, message='Your complaint has been received', date_posted=datetime.utcnow())
-    notification2 = Notification(user_id=user4.id, message='Your order has been accepted', date_posted=datetime.utcnow())
-    db.session.add_all([notification1, notification2])
+    notifications = []
+    for i in range(1, 51):
+        notification = Notification(
+            user_id=random.choice(users).id, 
+            message=f'Notification {i} message', 
+            date_posted=datetime.utcnow()
+        )
+        notifications.append(notification)
+    db.session.add_all(notifications)
     db.session.commit()
 
     print("Dummy data created successfully!")

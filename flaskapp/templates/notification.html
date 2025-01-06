@@ -16,10 +16,10 @@
             <div class="btn-group" role="group" aria-label="Notification actions">
                 <a href="{{ url_for('updateNotification', order_id = note.id) }}" class="btn btn-secondary mr-2">Mark Viewed</a>
                 <form action="{{ url_for('acceptOrder', order_id = note.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-success mr-2">Accepted</button>
+                    <button type="submit" class="btn btn-success mr-2">Accept</button>
                 </form>
                 <form action="{{ url_for('rejectOrder', order_id = note.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Rejected</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
                 </form>
             </div>
         
