@@ -16,22 +16,21 @@
     <p><strong>Status:</strong> {{ order.status.value }}</p>
 
     <h3>Update</h3>
-    <div class="d-flex gap-2">
-        <form method="POST" action="{{ url_for('mark_ontheway', order_id=order.id) }}">
-            <button type="submit" class="btn btn-primary btn-sm">On the Way</button>
+    <div class="btn-group" role="group" aria-label="Order actions">
+        <form method="POST" action="{{ url_for('mark_ontheway', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary mr-2">On the Way</button>
         </form>
 
-        <form method="POST" action="{{ url_for('mark_reached', order_id=order.id) }}">
-            <button type="submit" class="btn btn-warning btn-sm">Reached</button>
+        <form method="POST" action="{{ url_for('mark_reached', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-warning mr-2">Reached</button>
         </form>
 
-        <form method="POST" action="{{ url_for('mark_completed', order_id=order.id) }}">
-            <button type="submit" class="btn btn-success btn-sm">Completed</button>
+        <form method="POST" action="{{ url_for('mark_completed', order_id=order.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-success mr-2">Completed</button>
         </form>
+
+        <button id="seeInMapBtn" class="btn btn-primary">See it in Map</button>
     </div>
-
-    <!-- See in Map Button -->
-    <button id="seeInMapBtn" class="btn btn-primary mt-3">See it in Map</button>
 
     <!-- Modal for displaying the map -->
     <div class="modal" id="mapModal" tabindex="-1" aria-hidden="true">
@@ -71,11 +70,11 @@
 
 <!-- Google Maps API and JavaScript to show the map -->
 <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBklSUCK1hd7x7b-0bUhTK7L5ozV464LNA&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBklSUCK1hd7x7b-0bUhTK7L5ozV464LNA&callback=initMap&libraries=places">
 </script>
 
 <script type="text/javascript">
-    let map;
+    let map, directionsService, directionsRenderer;
 
     function initMap() {
         // Coordinates passed from Flask
@@ -89,6 +88,11 @@
             center: { lat: spLat, lng: spLon },
             zoom: 15
         });
+
+        // Initialize directions service and renderer
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer();
+        directionsRenderer.setMap(map);
 
         // Add a marker for the service provider's location
         new google.maps.Marker({
@@ -104,6 +108,29 @@
             title: "Order Location",
             icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png" // Red marker for the order
         });
+
+        // Calculate and display the route
+        calculateAndDisplayRoute(spLat, spLon, orderLat, orderLon);
+    }
+
+    function calculateAndDisplayRoute(spLat, spLon, orderLat, orderLon) {
+        const start = new google.maps.LatLng(spLat, spLon);
+        const end = new google.maps.LatLng(orderLat, orderLon);
+
+        directionsService.route(
+            {
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode.DRIVING
+            },
+            (response, status) => {
+                if (status === "OK") {
+                    directionsRenderer.setDirections(response);
+                } else {
+                    window.alert("Directions request failed due to " + status);
+                }
+            }
+        );
     }
 
     // Trigger map modal display on "See in Map" button click

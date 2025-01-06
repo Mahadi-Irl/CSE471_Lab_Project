@@ -117,3 +117,70 @@ class Complaint(db.Model):
 
     def __repr__(self):
         return f"Complaint('{self.id}', '{self.date_posted}', '{self.message}')"
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship('User', backref='notifications', lazy=True)
+
+    def __repr__(self):
+        return f"Notification('{self.id}', '{self.message}', '{self.date_posted}')"
+
+def create_dummy_data():
+    from flaskapp import db
+    from flaskapp.models import User, ServiceProvider, Service, Order, Category, Complaint, Notification
+    from datetime import datetime
+
+    # Create dummy users
+    user1 = User(username='user1', email='user1@example.com', password='password', is_admin=False)
+    user2 = User(username='user2', email='user2@example.com', password='password', is_admin=False)
+    user3 = User(username='user3', email='user3@example.com', password='password', is_admin=False)
+    user4 = User(username='user4', email='user4@example.com', password='password', is_admin=False)
+    admin = User(username='admin', email='admin@example.com', password='password', is_admin=True)
+    db.session.add_all([user1, user2, user3, user4, admin])
+    db.session.commit()
+
+    # Create dummy service providers
+    sp1 = ServiceProvider(id=user1.id, nid='123456789', bio='Service Provider 1 Bio', verified=True, latitude=23.8103, longitude=90.4125)  # Dhaka
+    sp2 = ServiceProvider(id=user2.id, nid='987654321', bio='Service Provider 2 Bio', verified=False, latitude=22.3475, longitude=91.8123)  # Chittagong
+    sp3 = ServiceProvider(id=user3.id, nid='112233445', bio='Service Provider 3 Bio', verified=True, latitude=24.3636, longitude=88.6241)  # Rajshahi
+    db.session.add_all([sp1, sp2, sp3])
+    db.session.commit()
+
+    # Create dummy categories
+    cat1 = Category(name='Cleaning')
+    cat2 = Category(name='Plumbing')
+    cat3 = Category(name='Electrical')
+    db.session.add_all([cat1, cat2, cat3])
+    db.session.commit()
+
+    # Create dummy services
+    service1 = Service(title='House Cleaning', description='Full house cleaning service', user_id=user1.id, provider_id=sp1.id, ratings=4, category_id=cat1.id, duration=2, ser_price=50.0)
+    service2 = Service(title='Pipe Fixing', description='Fixing all kinds of pipes', user_id=user2.id, provider_id=sp2.id, ratings=5, category_id=cat2.id, duration=1, ser_price=30.0)
+    service3 = Service(title='Electrical Repair', description='Repairing electrical issues', user_id=user3.id, provider_id=sp3.id, ratings=3, category_id=cat3.id, duration=3, ser_price=70.0)
+    db.session.add_all([service1, service2, service3])
+    db.session.commit()
+
+    # Create dummy orders
+    order1 = Order(order_loc='123 Main St', order_datetime=datetime.utcnow(), status='pending', price=50.0, ser_id=service1.id, service_provider_id=sp1.id, customer_id=user2.id, latitude=23.8103, longitude=90.4125)  # Dhaka
+    order2 = Order(order_loc='456 Elm St', order_datetime=datetime.utcnow(), status='completed', price=30.0, ser_id=service2.id, service_provider_id=sp2.id, customer_id=user1.id, latitude=22.3475, longitude=91.8123)  # Chittagong
+    order3 = Order(order_loc='789 Oak St', order_datetime=datetime.utcnow(), status='accepted', price=70.0, ser_id=service3.id, service_provider_id=sp3.id, customer_id=user4.id, latitude=24.3636, longitude=88.6241)  # Rajshahi
+    db.session.add_all([order1, order2, order3])
+    db.session.commit()
+
+    # Create dummy complaints
+    complaint1 = Complaint(order_id=order1.id, user_id=user2.id, message='Service was not satisfactory', date_posted=datetime.utcnow(), resolved=False)
+    complaint2 = Complaint(order_id=order3.id, user_id=user4.id, message='Service was delayed', date_posted=datetime.utcnow(), resolved=False)
+    db.session.add_all([complaint1, complaint2])
+    db.session.commit()
+
+    # Create dummy notifications
+    notification1 = Notification(user_id=user1.id, message='Your complaint has been received', date_posted=datetime.utcnow())
+    notification2 = Notification(user_id=user4.id, message='Your order has been accepted', date_posted=datetime.utcnow())
+    db.session.add_all([notification1, notification2])
+    db.session.commit()
+
+    print("Dummy data created successfully!")

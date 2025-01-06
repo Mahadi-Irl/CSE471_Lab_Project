@@ -3,7 +3,7 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt, socketio
-from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category, Notification
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm, ComplaintForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
@@ -11,6 +11,7 @@ from datetime import datetime
 from sqlalchemy.orm import joinedload
 from functools import wraps
 from flask_socketio import emit, join_room, leave_room
+from flaskapp.models import create_dummy_data
 
 def admin_required(f):
     @wraps(f)
@@ -45,22 +46,44 @@ def getservices():
                 "id": top_service.id,
                 "title": top_service.title,
                 "description": top_service.description,
-                "price": top_service.ser_price,
+                "ser_price": top_service.ser_price,  # Updated key
                 "ratings": top_service.ratings,
                 "duration": top_service.duration,
             }
     return obj
 
+def get_top_services_by_category():
+    categories = Category.query.all()
+    services_by_category = {}
+    category_order_counts = {}
+
+    for category in categories:
+        top_services = (
+            db.session.query(Service, db.func.count(Order.id).label('order_count'))
+            .select_from(Service)
+            .join(ServiceProvider, Service.provider_id == ServiceProvider.id)
+            .outerjoin(Order, Order.ser_id == Service.id)
+            .filter(Service.category_id == category.id, ServiceProvider.verified == True)
+            .group_by(Service.id)
+            .order_by(db.func.count(Order.id).desc())
+            .limit(3)
+            .all()
+        )
+        if top_services:
+            services_by_category[category.name] = [service for service, order_count in top_services]
+            category_order_counts[category.name] = sum(order_count for service, order_count in top_services)
+
+    # Sort categories by the number of orders
+    sorted_categories = sorted(category_order_counts.items(), key=lambda item: item[1], reverse=True)
+    sorted_services_by_category = {category: services_by_category[category] for category, _ in sorted_categories}
+
+    return sorted_services_by_category
+
 @app.route("/")
 @app.route("/home")
 def home():
-    services_data = getservices()
-    servicesList = []
-
-    for category, service in services_data.items():
-        service["category"] = category
-        servicesList.append(service)
-    return render_template('home.html', services=servicesList)
+    services_by_category = get_top_services_by_category()
+    return render_template('home.html', services_by_category=services_by_category)
 
 @app.route("/about")
 def about():
@@ -189,6 +212,16 @@ def refund_user(complaint_id):
     complaint.resolved = True
     complaint.action_taken = "User refunded"
     db.session.commit()
+
+    # Create notification for the user
+    notification = Notification(
+        user_id=complaint.user_id,
+        message=f"Your complaint (ID: {complaint.id}) has been resolved with a refund.",
+        date_posted=datetime.utcnow()
+    )
+    db.session.add(notification)
+    db.session.commit()
+
     flash('User has been refunded.', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -211,9 +244,21 @@ def remove_service_provider(complaint_id):
 @admin_required
 def warn_service_provider(complaint_id):
     complaint = Complaint.query.get_or_404(complaint_id)
+    order = Order.query.get_or_404(complaint.order_id)
+    service_provider = ServiceProvider.query.get_or_404(order.service_provider_id)
     complaint.resolved = True
     complaint.action_taken = "Service provider warned"
     db.session.commit()
+
+    # Create notification for the service provider
+    notification = Notification(
+        user_id=service_provider.id,
+        message=f"You have been warned regarding complaint (ID: {complaint.id}).",
+        date_posted=datetime.utcnow()
+    )
+    db.session.add(notification)
+    db.session.commit()
+
     flash('Service provider has been warned.', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -411,11 +456,18 @@ def notification():
             'service_title': service.title,
             'loc' : order.order_loc,
         } for order, service in viewed]
+
+        # Fetch warning notifications for service providers
+        warning_notifications = Notification.query.filter(Notification.user_id == current_user.id, Notification.message.like('%warned%')).all()
     else:
         notes = None
         views = None
+        warning_notifications = None
 
-    return render_template('notification.html', note = notes, viewed = views)
+    # Fetch refund notifications for users
+    refund_notifications = Notification.query.filter(Notification.user_id == current_user.id, Notification.message.like('%refunded%')).all()
+
+    return render_template('notification.html', note = notes, viewed = views, refund_notifications=refund_notifications, warning_notifications=warning_notifications)
 
 @app.route('/updateNotification/<int:order_id>')
 def updateNotification(order_id):
@@ -430,21 +482,23 @@ def updateNotification(order_id):
 
     return redirect(url_for('notification'))
 
-@app.route('/acceptOrder/<int:order_id>')
+@app.route('/acceptOrder/<int:order_id>', methods=['POST'])
 def acceptOrder(order_id):
     order = Order.query.get_or_404(order_id)
 
     order.status = OrderStatus.accepted
+    order.notifications = NotificationStatus.viewed
     db.session.commit()
     flash('Order status updated to "Accepted".', 'success')
 
     return redirect(url_for('notification'))
 
-@app.route('/rejectOrder/<int:order_id>')
+@app.route('/rejectOrder/<int:order_id>', methods=['POST'])
 def rejectOrder(order_id):
     order = Order.query.get_or_404(order_id)
 
     order.status = OrderStatus.rejected
+    order.notifications = NotificationStatus.viewed
     db.session.commit()
     flash('Order status updated to "Rejected".', 'success')
 
@@ -564,7 +618,6 @@ def order_details(order_id):
         order_lat=order_lat,
         order_lon=order_lon
     )
-    return render_template('review_order.html', order=order)
 
 @app.route("/service/<int:service_id>/view_reviews")
 def view_reviews(service_id):
@@ -702,3 +755,9 @@ def submit_complaint(order_id):
     else:
         flash('Please provide a complaint message.', 'danger')
     return redirect(url_for('userorderdetails', order_id=order_id))
+
+@app.route('/create_dummy_data')
+def create_data():
+    create_dummy_data()
+    flash('Dummy data created successfully!', 'success')
+    return redirect(url_for('home'))
