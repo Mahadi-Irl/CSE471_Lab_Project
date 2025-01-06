@@ -1,14 +1,11 @@
 from datetime import datetime
-from flaskapp import db, login_manager, app
+from flaskapp import db, login_manager
 from flask_login import UserMixin
 from enum import Enum
-from sqlalchemy.orm import validates
-
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,26 +24,23 @@ class User(db.Model, UserMixin):
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
-
 class ServiceProvider(db.Model):
     id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     nid = db.Column(db.String(50), unique=True, nullable=False)
     bio = db.Column(db.Text, nullable=True)
     services = db.relationship('Service', backref='provider', lazy=True)
-    latitude = db.Column(db.Float)  
+    latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
-    verified = db.Column(db.Boolean, nullable=False, default=False)  # New attribute
-    user = db.relationship('User', backref='service_provider', lazy=True)  # Add this line
+    verified = db.Column(db.Boolean, nullable=False, default=False)
+    user = db.relationship('User', backref='service_provider', lazy=True)
 
     def __repr__(self):
         return f"ServiceProvider('{self.nid}', '{self.bio}', Verified: {self.verified})"
-
 
 class ServiceProviderService(db.Model):
     __tablename__ = 'service_provider_service'
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), primary_key=True)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), primary_key=True)
-
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,29 +50,27 @@ class Category(db.Model):
     def __repr__(self):
         return f"Category('{self.name}')"
 
-
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     date_posted = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
-    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
     ratings = db.Column(db.Integer, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
-    duration = db.Column(db.Integer, nullable = False)
+    duration = db.Column(db.Integer, nullable=False)
     ser_price = db.Column(db.Float, nullable=False)
-    orders = db.relationship('Order', backref='linked_service', lazy=True) 
-    
+    orders = db.relationship('Order', backref='linked_service', lazy=True)
+
     def __repr__(self):
-        return f'<Service {self.id},Title: {self.title}, Category: {self.category.name}, Date: {self.date_posted}>'
-    
+        return f'<Service {self.id}, Title: {self.title}, Category: {self.category.name}, Date: {self.date_posted}>'
+
     def set_ratings(self, value):
         if 0 <= value <= 5:
             self.ratings = value
         else:
-            raise ValueError("Ratings must be between 0 and 5") 
-
+            raise ValueError("Ratings must be between 0 and 5")
 
 class OrderStatus(Enum):
     pending = 'pending'
@@ -88,37 +80,27 @@ class OrderStatus(Enum):
     completed = 'completed'
     rejected = 'rejected'
 
-
 class NotificationStatus(Enum):
     not_viewed = 'not viewed'
     viewed = 'viewed'
-    
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_loc = db.Column(db.String(200), nullable=False)  
-    order_datetime = db.Column(db.DateTime, default=datetime.utcnow)  
-    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.pending)  
-    review = db.Column(db.String(500), nullable=True)  
-    rate = db.Column(db.Float, nullable=True)  
-    price = db.Column(db.Float, nullable=False) 
-    notifications = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.not_viewed) 
+    order_loc = db.Column(db.String(200), nullable=False)
+    order_datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.pending)
+    review = db.Column(db.Text, nullable=True)
+    rate = db.Column(db.Integer, nullable=True)
+    price = db.Column(db.Float, nullable=False)
+    notifications = db.Column(db.Enum(NotificationStatus), default=NotificationStatus.not_viewed)
     ser_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)
-    latitude = db.Column(db.Float)  # Add this field
+    latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
-    
-    #review = db.Column(db.String(500), nullable=True)  
-    #rate = db.Column(db.Float, nullable=True)  
-    rate = db.Column(db.Integer, nullable=True)  # Add this line
-    review = db.Column(db.Text, nullable=True)  # Add this line
 
-    service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
         return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'
-
-
 
 class Complaint(db.Model):
     id = db.Column(db.Integer, primary_key=True)
