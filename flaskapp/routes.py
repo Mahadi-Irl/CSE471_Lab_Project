@@ -21,7 +21,7 @@ def home():
     services_data = getservices()  
     servicesList = []
 
-    
+
     for category, service in services_data.items():
         service["category"] = category  
         servicesList.append(service)
@@ -161,12 +161,17 @@ def getservices():
     return obj
 
 
-@app.route('/servicedetails/<int:service_id>')
+@app.route("/service/<int:service_id>")
 def servicedetails(service_id):
-    services = Service.query.filter_by(id=service_id).first()
-    ref = request.referrer
-    return render_template('service_details.html', details=services, referrer=ref)
-    
+    details = Service.query.get_or_404(service_id)
+    orders = Order.query.filter_by(ser_id=service_id).all()
+    if orders:
+        valid_ratings = [order.rate for order in orders if order.rate is not None]
+        avg_rating = sum(valid_ratings) / len(valid_ratings) if valid_ratings else None
+    else:
+        avg_rating = None
+    return render_template('service_details.html', details=details, avg_rating=avg_rating)
+
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -252,9 +257,9 @@ def search_result():
     min_price = request.args.get('min_price', type=float)  
     max_price = request.args.get('max_price', type=float)  
     rating = request.args.get('rating', type=int) or 0   
-    
+
     results = Service.query.join(ServiceProvider).filter(ServiceProvider.verified == True)  # Only show verified providers
-    
+
     if query:
         filters = [Service.title.ilike(f"%{word}%") for word in query]
         results = results.filter(or_(*filters))
@@ -272,7 +277,7 @@ def search_result():
     results = results.order_by(Service.ser_price.asc(), Service.ratings.desc()).all()
 
     return render_template('search_results.html', result=results)
-        
+
 
 
 @app.route("/logout")
@@ -298,14 +303,14 @@ def save_picture(form_picture):
 @app.route('/alluserorders')
 @login_required
 def alluserorders():
-    
+
     orders = (
     db.session.query(Order, Service)
     .join(Service, Order.ser_id == Service.id)  
     .filter(Order.customer_id == current_user.id)  
     .all()  
 )
-    
+
     combined_details = [
     {
         'id': order.id,
@@ -325,7 +330,7 @@ def alluserorders():
 @app.route('/userorderdetails/<int:order_id>')
 @login_required
 def userorderdetails(order_id):
-    
+
     orders = (
     db.session.query(Order, Service)
     .join(Service, Order.ser_id == Service.id)  
@@ -341,7 +346,7 @@ def userorderdetails(order_id):
         'service_title': service.title,
     }
 
-   
+
 
     if not orders:
         flash('Order not found', 'danger')
@@ -385,7 +390,7 @@ def placeorder(service_id):
 
 
 
-@app.route('/submitOrder', methods = ['POST'])
+@app.route('/submitOrder', methods=['POST'])
 def postorder():
     if request.method == 'POST':
         location = request.form.get('location')
@@ -394,28 +399,32 @@ def postorder():
         service_id = request.form.get('service_id', type=int)
         service_provider_id = request.form.get('service_provider_id', type=int)
 
-    
-    if not location or not date_time or not price:
-        flash("All fields are required!", "danger")
-        return redirect('/submitOrder')
+        if not location or not date_time or not price:
+            flash("All fields are required!", "danger")
+            return redirect('/submitOrder')
 
-   
-    new_order = Order(order_loc=location, order_datetime=date_time, price=price, ser_id = service_id, service_provider_id = service_provider_id, customer_id = current_user.id)
+        new_order = Order(
+            order_loc=location,
+            order_datetime=date_time,
+            price=price,
+            ser_id=service_id,
+            service_provider_id=service_provider_id,
+            customer_id=current_user.id,
+        )
 
-    db.session.add(new_order)
-    db.session.commit()
-
-    flash("Order submitted successfully!", "success")
-    return redirect(url_for('alluserorders'))
+        db.session.add(new_order)
+        db.session.commit()
+        flash("Order submitted successfully!", 'success')
+        return redirect(url_for('payment', order_id=new_order.id))
 
 
 
 @app.route('/notification')
 def notification():
-    
+
     checkprovider = ServiceProvider.query.filter_by(id = current_user.id).first()
     if checkprovider:
-         
+
         note = (db.session.query(Order, Service).join(Service, Order.ser_id == Service.id).filter(Order.notifications == 'not_viewed', Order.service_provider_id == checkprovider.id).all())
         notes = [{
             'id': order.id,
@@ -435,11 +444,11 @@ def notification():
             'service_title': service.title,
             'loc' : order.order_loc,
             } for order, service in viewed]
-    
+
     else:
         notes = None
         views = None
-    
+
     return render_template('notification.html', note = notes, viewed = views)
 
 @app.route('/updateNotification/<int:order_id>')
@@ -455,7 +464,7 @@ def updateNotification(order_id):
         order.notifications = NotificationStatus.not_viewed
         db.session.commit()
 
-    
+
     return redirect(url_for('notification'))
 
 
@@ -464,11 +473,11 @@ def updateNotification(order_id):
 @app.route('/acceptOrder/<int:order_id>')
 def acceptOrder(order_id):
     order = Order.query.get_or_404(order_id)
-    
+
     order.status = OrderStatus.accepted
     db.session.commit()
     flash('Order status updated to "Accepted".', 'success')
-    
+
     return redirect(url_for('notification'))
 
 
@@ -476,11 +485,11 @@ def acceptOrder(order_id):
 @app.route('/rejectOrder/<int:order_id>')
 def rejectOrder(order_id):
     order = Order.query.get_or_404(order_id)
-    
+
     order.status = OrderStatus.rejected
     db.session.commit()
     flash('Order status updated to "Rejected".', 'success')
-    
+
     return redirect(url_for('notification'))
 @app.route("/accepted_orders", methods=['GET', 'POST'], endpoint='accepted_orders')
 @login_required
@@ -515,7 +524,7 @@ def view_orders():
         completed_orders=completed_orders
     )
 
-    
+
 
 
 
@@ -537,7 +546,7 @@ def mark_reached(order_id):
 @login_required
 def mark_ontheway(order_id):  
     order = Order.query.get_or_404(order_id)
-    
+
     order.status = OrderStatus.on_the_way 
     db.session.commit()
     flash('Order status updated to "On the way".', 'success')
@@ -547,7 +556,7 @@ def mark_ontheway(order_id):
 @login_required
 def mark_completed(order_id):
     order = Order.query.get_or_404(order_id)
-    
+
     order.status = OrderStatus.completed
     db.session.commit()
     flash('Order status updated to "Completed".', 'success')
@@ -601,3 +610,82 @@ def order_details(order_id):
         order_lat=order_lat,
         order_lon=order_lon
     )
+    return render_template('review_order.html', order=order)
+
+@app.route("/service/<int:service_id>/view_reviews")
+def view_reviews(service_id):
+
+    orders = Order.query.filter_by(ser_id=service_id).all()
+
+
+    reviews = [{"review": order.review, "rate": order.rate, "customer": User.query.get(order.customer_id).username}
+               for order in orders if order.review]
+
+    return render_template('view_reviews.html', reviews=reviews, service_id=service_id)
+
+@app.route('/payment/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def payment(order_id):
+    order = Order.query.get_or_404(order_id)
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access to payment.", "danger")
+        return redirect(url_for('alluserorders'))
+
+    if request.method == 'POST':
+        payment_method = request.form.get('payment_method')
+        if not payment_method:
+            flash("Please select a payment method.", "danger")
+            return redirect(url_for('payment', order_id=order_id))
+
+        if payment_method == "Cash":
+            flash("Payment successful using Cash.", "success")
+            return redirect(url_for('alluserorders'))
+        elif payment_method == "Credit Card":
+            return redirect(url_for('credit_card_payment', order_id=order_id))
+        elif payment_method == "Mobile Payment":
+            return redirect(url_for('mobile_payment', order_id=order_id))
+
+    service = Service.query.get_or_404(order.ser_id)
+    return render_template(
+        'payment.html',
+        details=service,
+        order_id=order.id,
+        location=order.order_loc,
+        datetime=order.order_datetime,
+        price=order.price
+    )
+
+@app.route('/payment/credit_card/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def credit_card_payment(order_id):
+    order = Order.query.get_or_404(order_id)
+
+
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('alluserorders'))
+
+    if request.method == 'POST':
+
+        flash("Payment successful using Credit Card.", "success")
+
+        return redirect(url_for('alluserorders'))
+
+    return render_template('credit_card_payment.html', order=order)
+
+@app.route('/payment/mobile/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def mobile_payment(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    if order.customer_id != current_user.id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('alluserorders'))
+
+    if request.method == 'POST':
+
+        flash("Payment successful using Mobile Payment.", "success")
+
+        return redirect(url_for('alluserorders'))
+
+    return render_template('mobile_payment.html', order=order)
