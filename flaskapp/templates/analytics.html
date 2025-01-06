@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="content-section">
+  <h2>Analytics Dashboard</h2>
+  <p><strong>Total Orders:</strong> {{ data.total_orders }}</p>
+  <p><strong>Total Revenue Earned:</strong> ${{ data.revenue }}</p>
+  <p><strong>Most Requested Service:</strong> {{ data.most_requested_service }}</p>
+</div>
+{% endblock content %}

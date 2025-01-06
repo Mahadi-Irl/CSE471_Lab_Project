@@ -105,9 +105,11 @@ class Order(db.Model):
     latitude = db.Column(db.Float)  # Add this field
     longitude = db.Column(db.Float)
     
-    review = db.Column(db.String(500), nullable=True)  
-    rate = db.Column(db.Float, nullable=True)  
-    
+    #review = db.Column(db.String(500), nullable=True)  
+    #rate = db.Column(db.Float, nullable=True)  
+    rate = db.Column(db.Integer, nullable=True)  # Add this line
+    review = db.Column(db.Text, nullable=True)  # Add this line
+
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
         return f'<Order {self.id}, Location: {self.order_loc}, Price: {self.price}, Status: {self.status.value}, Notifications: {self.notifications.value}>'

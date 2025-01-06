@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from flask_login import current_user
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
-from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, IntegerField, TextAreaField
+from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, NumberRange
 from flaskapp.models import User
 
 
@@ -43,3 +43,10 @@ class UpdateAccountForm(FlaskForm):
             user = User.query.filter_by(email=email.data).first()
             if user:
                 raise ValidationError('That email is taken. Please choose a different one.')
+            
+
+
+class ReviewForm(FlaskForm):
+    rate = IntegerField('Rate', validators=[DataRequired(), NumberRange(min=1, max=5)])
+    review = TextAreaField('Review', validators=[DataRequired()])
+    submit = SubmitField('Submit Review')

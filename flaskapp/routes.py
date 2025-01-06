@@ -4,8 +4,7 @@ from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt, socketio
 from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category
-
-from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm, ReviewForm
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import or_
 from datetime import datetime
@@ -527,6 +526,15 @@ def view_orders():
 
 
 
+    
+@app.route("/order/<int:order_id>")
+@login_required
+def order_details(order_id):
+    order = Order.query.get_or_404(order_id)
+    service = Service.query.get_or_404(order.ser_id)
+    customer = User.query.get_or_404(order.customer_id)
+    form = ReviewForm()
+    return render_template('ordersdetails.html', order=order, service=service, customer=customer, form=form)
 
 @app.route('/mark_reached/<int:order_id>', methods=['POST'])
 @login_required
@@ -667,6 +675,7 @@ def credit_card_payment(order_id):
 
     if request.method == 'POST':
 
+
         flash("Payment successful using Credit Card.", "success")
 
         return redirect(url_for('alluserorders'))
@@ -706,3 +715,57 @@ def review_order(order_id):
         else:
             flash('Please provide both rating and review.', 'danger')
     return render_template('review_order.html', order=order)
+
+
+@app.route("/review/<int:order_id>/", methods=['POST'])
+@login_required
+def review_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    #if order.customer_id != current_user.id:
+        #abort(403)
+    form = ReviewForm()
+    if form.validate_on_submit():
+        order.rate = form.rate.data
+        order.review = form.review.data
+        db.session.commit()
+        flash('Your review has been submitted.', 'success')
+        return redirect(url_for('order_details', order_id=order.id))
+    return render_template('ordersdetails.html', order=order, form=form)
+
+@app.route('/analytics')
+@login_required
+def analytics():
+
+    service_provider_id = current_user.id  
+
+  
+    total_orders = Order.query.filter_by(service_provider_id=service_provider_id).count()
+
+
+    total_revenue = (
+        db.session.query(db.func.sum(Order.price))
+        .filter_by(service_provider_id=service_provider_id)
+        .scalar()
+        or 0.0
+    )
+
+    most_requested_service_id = (
+        db.session.query(Order.ser_id, db.func.count(Order.ser_id))
+        .filter_by(service_provider_id=service_provider_id)
+        .group_by(Order.ser_id)
+        .order_by(db.func.count(Order.ser_id).desc())
+        .first()
+    )
+
+    most_requested_service = (
+        Service.query.get(most_requested_service_id[0]).title
+        if most_requested_service_id
+        else "N/A"
+    )
+
+    analytics_data = {
+        "total_orders": total_orders,
+        "revenue": total_revenue,
+        "most_requested_service": most_requested_service,
+    }
+    return render_template('analytics.html', data=analytics_data)
