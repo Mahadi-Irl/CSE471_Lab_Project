@@ -2,6 +2,9 @@ from datetime import datetime
 from flaskapp import db, login_manager
 from flask_login import UserMixin
 from enum import Enum
+from flask_bcrypt import Bcrypt
+
+bcrypt = Bcrypt()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -147,7 +150,8 @@ def create_dummy_data():
     # Create dummy users
     users = []
     for i in range(1, 51):
-        user = User(username=bengali_names[i-1], email=f'{bengali_names[i-1].lower()}@example.com', password='password', is_admin=(i == 1))
+        hashed_password = bcrypt.generate_password_hash('password').decode('utf-8')
+        user = User(username=bengali_names[i-1], email=f'{bengali_names[i-1].lower()}@example.com', password=hashed_password, is_admin=(i == 1))
         users.append(user)
     db.session.add_all(users)
     db.session.commit()

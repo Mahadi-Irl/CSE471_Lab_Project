@@ -12,6 +12,10 @@ from sqlalchemy.orm import joinedload
 from functools import wraps
 from flask_socketio import emit, join_room, leave_room
 from flaskapp.models import create_dummy_data
+from flask_bcrypt import Bcrypt
+from random import uniform
+
+bcrypt = Bcrypt()
 
 def admin_required(f):
     @wraps(f)
@@ -271,7 +275,8 @@ def servicedetails(service_id):
         avg_rating = sum(valid_ratings) / len(valid_ratings) if valid_ratings else None
     else:
         avg_rating = None
-    return render_template('service_details.html', details=details, avg_rating=avg_rating)
+    referrer = request.referrer  # Get the referrer URL
+    return render_template('service_details.html', details=details, avg_rating=avg_rating, referrer=referrer)
 
 @app.route('/join')
 @login_required
@@ -305,7 +310,9 @@ def become_service_provider():
 
         service_provider = db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
         if service_provider is None:
-            service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
+            latitude = uniform(20.0, 26.0)
+            longitude = uniform(88.0, 92.0)
+            service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio, latitude=latitude, longitude=longitude)
             db.session.add(service_provider)
             db.session.commit()
 
@@ -419,6 +426,10 @@ def postorder():
             flash("All fields are required!", "danger")
             return redirect('/submitOrder')
 
+        # Generate random latitude and longitude for the order
+        latitude = uniform(20.0, 26.0)
+        longitude = uniform(88.0, 92.0)
+
         new_order = Order(
             order_loc=location,
             order_datetime=date_time,
@@ -426,6 +437,8 @@ def postorder():
             ser_id=service_id,
             service_provider_id=service_provider_id,
             customer_id=current_user.id,
+            latitude=latitude,
+            longitude=longitude
         )
 
         db.session.add(new_order)
@@ -735,10 +748,34 @@ def analytics():
         else "N/A"
     )
 
+    # Additional analytics data
+    total_customers = (
+        db.session.query(db.func.count(db.distinct(Order.customer_id)))
+        .filter_by(service_provider_id=service_provider_id)
+        .scalar()
+    )
+
+    average_rating = (
+        db.session.query(db.func.avg(Order.rate))
+        .filter_by(service_provider_id=service_provider_id)
+        .scalar()
+        or 0.0
+    )
+
+    total_complaints = (
+        db.session.query(db.func.count(Complaint.id))
+        .join(Order, Complaint.order_id == Order.id)
+        .filter(Order.service_provider_id == service_provider_id)
+        .scalar()
+    )
+
     analytics_data = {
         "total_orders": total_orders,
         "revenue": total_revenue,
         "most_requested_service": most_requested_service,
+        "total_customers": total_customers,
+        "average_rating": round(average_rating, 2),
+        "total_complaints": total_complaints,
     }
     return render_template('analytics.html', data=analytics_data)
 

@@ -14,7 +14,7 @@
         <p><strong>Rating:</strong> No ratings yet</p>
         {% endif %}
 
-        <a href="{{ referrer }}" class="btn btn-secondary">Back</a>
+        <a href="{{ referrer or url_for('home') }}" class="btn btn-secondary">Back</a>
         <a href="{{ url_for('placeorder', service_id = details.id) }}" class="btn btn-secondary">Book an order</a>
         <a href="{{ url_for('view_reviews', service_id = details.id) }}" class="btn btn-secondary">See Reviews</a>
     </div>
