@@ -57,7 +57,7 @@
 <article class="media content-section">
   <div class="media-body">
     <div class="article-metadata">
-      <a class="mr-2" href="#">{{ service.provider }}</a>
+      <a class="mr-2" href="#">{{ service.provider.user.username }}</a>
       <small class="text-muted">{{ service.date_posted }}</small>
     </div>
     <h2>
@@ -71,5 +71,47 @@
   </div>
 </article>
 {% endfor %}
+
+<!-- Unverified Service Providers -->
+<h2>Unverified Service Providers</h2>
+{% for provider in unverified_providers %}
+<article class="media content-section">
+  <div class="media-body">
+    <div class="article-metadata">
+      <a class="mr-2" href="#">{{ provider.user.username }}</a>
+      <small class="text-muted">{{ provider.nid }}</small>
+    </div>
+    <p class="article-content">{{ provider.bio }}</p>
+    <form method="POST" action="{{ url_for('approve_provider', provider_id=provider.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-success btn-sm">Approve</button>
+    </form>
+    <form method="POST" action="{{ url_for('reject_provider', provider_id=provider.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+    </form>
+  </div>
+</article>
+{% endfor %}
+
+<!-- Category Management -->
+<h2>Manage Categories</h2>
+<form method="POST" action="{{ url_for('add_category') }}">
+    <div class="form-group">
+        <label for="category_name">New Category Name:</label>
+        <input type="text" class="form-control" id="category_name" name="category_name" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Category</button>
+</form>
+
+<h3>Existing Categories</h3>
+<ul>
+    {% for category in categories %}
+        <li>
+            {{ category.name }}
+            <form method="POST" action="{{ url_for('delete_category', category_id=category.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
 
 {% endblock content %}

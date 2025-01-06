@@ -31,9 +31,11 @@ class ServiceProvider(db.Model):
     services = db.relationship('Service', backref='provider', lazy=True)
     latitude = db.Column(db.Float)  
     longitude = db.Column(db.Float)
+    verified = db.Column(db.Boolean, nullable=False, default=False)  # New attribute
+    user = db.relationship('User', backref='service_provider', lazy=True)  # Add this line
 
     def __repr__(self):
-        return f"ServiceProvider('{self.nid}', '{self.bio}')"
+        return f"ServiceProvider('{self.nid}', '{self.bio}', Verified: {self.verified})"
 
 
 class ServiceProviderService(db.Model):
@@ -42,15 +44,14 @@ class ServiceProviderService(db.Model):
     service_provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), primary_key=True)
 
 
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    services = db.relationship('Service', backref='category', lazy=True)
 
+    def __repr__(self):
+        return f"Category('{self.name}')"
 
-
-class CategoryEnum(Enum):
-    ELECTRONICS = 'AC Servicing'
-    FASHION = 'Salon Care'
-    HOME = 'Home Cleaning'
-    BOOKS = 'Stationary Services'
-    SPORTS = 'Practice Matches'
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -60,22 +61,19 @@ class Service(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  
     provider_id = db.Column(db.Integer, db.ForeignKey('service_provider.id'), nullable=False)  
     ratings = db.Column(db.Integer, nullable=False)
-    category = db.Column(db.Enum(CategoryEnum), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     duration = db.Column(db.Integer, nullable = False)
     ser_price = db.Column(db.Float, nullable=False)
-
-
     orders = db.relationship('Order', backref='linked_service', lazy=True) 
     
     def __repr__(self):
-        return f'<Service {self.id},Title: {self.title}, Category: {self.category.value}, Date: {self.date_posted}>'
+        return f'<Service {self.id},Title: {self.title}, Category: {self.category.name}, Date: {self.date_posted}>'
     
     def set_ratings(self, value):
         if 0 <= value <= 5:
             self.ratings = value
         else:
             raise ValueError("Ratings must be between 0 and 5") 
-
 
 
 class OrderStatus(Enum):

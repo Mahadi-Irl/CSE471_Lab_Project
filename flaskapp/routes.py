@@ -3,7 +3,7 @@ import secrets
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
 from flaskapp import app, db, bcrypt, socketio
-from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, CategoryEnum
+from flaskapp.models import User, ServiceProvider, Service, Order, NotificationStatus, OrderStatus, Complaint, Category
 
 from flaskapp.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from flask_login import login_user, current_user, logout_user, login_required
@@ -44,7 +44,51 @@ def admin_dashboard():
     services = Service.query.all()
     unresolved_complaints = Complaint.query.filter_by(resolved=False).all()
     resolved_complaints = Complaint.query.filter_by(resolved=True).all()
-    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints)
+    categories = Category.query.all()
+    unverified_providers = ServiceProvider.query.filter_by(verified=False).all()
+    return render_template('admin.html', users=users, services=services, unresolved_complaints=unresolved_complaints, resolved_complaints=resolved_complaints, categories=categories, unverified_providers=unverified_providers)
+
+@app.route("/approve_provider/<int:provider_id>", methods=['POST'])
+@login_required
+@admin_required
+def approve_provider(provider_id):
+    provider = ServiceProvider.query.get_or_404(provider_id)
+    provider.verified = True
+    db.session.commit()
+    flash('Service provider approved successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/reject_provider/<int:provider_id>", methods=['POST'])
+@login_required
+@admin_required
+def reject_provider(provider_id):
+    provider = ServiceProvider.query.get_or_404(provider_id)
+    db.session.delete(provider)
+    db.session.commit()
+    flash('Service provider rejected and deleted successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/add_category", methods=['POST'])
+@login_required
+@admin_required
+def add_category():
+    category_name = request.form.get('category_name')
+    if category_name:
+        new_category = Category(name=category_name)
+        db.session.add(new_category)
+        db.session.commit()
+        flash('Category added successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/delete_category/<int:category_id>", methods=['POST'])
+@login_required
+@admin_required
+def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    db.session.delete(category)
+    db.session.commit()
+    flash('Category deleted successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route("/complaint/<int:complaint_id>")
 @login_required
@@ -99,16 +143,14 @@ def about():
 
 
 def getservices():
-    categories = db.session.query(Service.category).distinct().all()
+    categories = Category.query.all()
     obj = {}
-    for cat in categories:
-        category = cat[0] 
-        
+    for category in categories:
         top_service = (
-            db.session.query(Service).filter(Service.category == category).order_by(Service.ratings.desc()).first()
+            db.session.query(Service).join(ServiceProvider).filter(Service.category_id == category.id, ServiceProvider.verified == True).order_by(Service.ratings.desc()).first()
         )
         if top_service:
-            obj[category.value] = { 
+            obj[category.name] = { 
                 "id": top_service.id,
                 "title": top_service.title,
                 "description": top_service.description,
@@ -161,7 +203,8 @@ def join():
 
 @app.route("/containform")
 def containform():
-    return render_template("createServiceProviderprofileform.html")
+    categories = Category.query.all()
+    return render_template("createServiceProviderprofileform.html", categories=categories)
 
 @app.route('/become_service_provider', methods=['GET', 'POST'])
 @login_required
@@ -172,39 +215,34 @@ def become_service_provider():
         title = request.form.get('title')
         description = request.form.get('description')
         ser_price = request.form.get('ser_price')
-        category = request.form.get('category') 
-        duration = request.form.get('duration') 
-        
-        
-        if not nid or not bio or not title or not description or not ser_price or not category:
+        category_id = request.form.get('category')
+        duration = request.form.get('duration')
+
+        if not nid or not bio or not title or not description or not ser_price or not category_id:
             flash('All fields are required.', 'danger')
             return redirect(url_for('become_service_provider'))
-        
-        
-        
-        service_provider =  db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
-        
-        if ( service_provider == None):
+
+        service_provider = db.session.query(ServiceProvider).filter(ServiceProvider.id == current_user.id).first()
+        if service_provider is None:
             service_provider = ServiceProvider(id=current_user.id, nid=nid, bio=bio)
             db.session.add(service_provider)
             db.session.commit()
 
-        
         service = Service(
-            title=title, 
-            description=description, 
-            ser_price=ser_price, 
-            user_id=current_user.id, 
+            title=title,
+            description=description,
+            ser_price=ser_price,
+            user_id=current_user.id,
             provider_id=current_user.id,
-            ratings = 1,
-            category=category, 
-            duration = duration,
+            ratings=1,
+            category_id=category_id,
+            duration=duration,
         )
         db.session.add(service)
         db.session.commit()
 
-        flash('You are now a service provider!', 'success')
-        return redirect(url_for('home')) 
+        flash('You are now a service provider! Please wait for admin approval.', 'success')
+        return redirect(url_for('home'))
 
 
 #search
@@ -215,7 +253,7 @@ def search_result():
     max_price = request.args.get('max_price', type=float)  
     rating = request.args.get('rating', type=int) or 0   
     
-    results = Service.query 
+    results = Service.query.join(ServiceProvider).filter(ServiceProvider.verified == True)  # Only show verified providers
     
     if query:
         filters = [Service.title.ilike(f"%{word}%") for word in query]
