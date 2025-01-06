@@ -689,3 +689,20 @@ def mobile_payment(order_id):
         return redirect(url_for('alluserorders'))
 
     return render_template('mobile_payment.html', order=order)
+
+@app.route('/review_order/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def review_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    if request.method == 'POST':
+        rating = request.form.get('rating', type=float)
+        review = request.form.get('review')
+        if rating is not None and review:
+            order.rate = rating
+            order.review = review
+            db.session.commit()
+            flash('Review submitted successfully!', 'success')
+            return redirect(url_for('alluserorders'))
+        else:
+            flash('Please provide both rating and review.', 'danger')
+    return render_template('review_order.html', order=order)
