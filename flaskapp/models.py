@@ -20,6 +20,10 @@ class User(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     services = db.relationship('Service', backref='creator', lazy=True)
 
+    @property
+    def is_service_provider(self):
+        return ServiceProvider.query.filter_by(id=self.id).first() is not None
+
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 

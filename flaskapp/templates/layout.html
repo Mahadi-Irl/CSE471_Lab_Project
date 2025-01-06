@@ -40,19 +40,21 @@
             <!-- Navbar Right Side -->
             <div class="navbar-nav">
               {% if current_user.is_authenticated %}
-                <a class="nav-item nav-link" href="{{ url_for('chat') }}">Chat</a>
-                <a class="nav-item nav-link" href="{{ url_for('accepted_orders') }}">Accepted Orders</a>
+                {% if not current_user.is_service_provider %}
+                  <a class="nav-item nav-link" href="{{ url_for('join') }}">Join</a>
+                {% endif %}
+                {% if current_user.is_service_provider %}
+                  <a class="nav-item nav-link" href="{{ url_for('accepted_orders') }}">Accepted Orders</a>
+                {% endif %}
                 <a class="nav-item nav-link" href="{{ url_for('account') }}">Account</a>
-                <a class="nav-item nav-link" href="{{ url_for('notification') }}">Notifcations</a>                
-                <a class="nav-item nav-link" href="{{ url_for('alluserorders') }}">All Orders</a>
-                <a class="nav-item nav-link" href="{{ url_for('join') }}">join</a>
+                <a class="nav-item nav-link" href="{{ url_for('notification') }}">Notifications</a>
+                {% if not current_user.is_service_provider %}
+                  <a class="nav-item nav-link" href="{{ url_for('alluserorders') }}">All Orders</a>
+                {% endif %}
                 <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
               {% else %}
                 <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
-                 
                 <a class="nav-item nav-link" href="{{ url_for('register') }}">Register</a>
-                
-                
               {% endif %}
             </div>
           </div>
