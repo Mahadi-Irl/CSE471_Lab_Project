@@ -47,6 +47,14 @@
       <small class="text-muted">{{ user.email }}</small>
     </div>
     <p class="article-content">Admin: {{ user.is_admin }}</p>
+    {% if not user.is_admin %}
+    <form method="POST" action="{{ url_for('make_admin', user_id=user.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-success btn-sm">Make Admin</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-danger btn-sm">Delete User</button>
+    </form>
   </div>
 </article>
 {% endfor %}
@@ -68,6 +76,9 @@
       >
     </h2>
     <p class="article-content">{{ service.description }}</p>
+    <form method="POST" action="{{ url_for('delete_service', service_id=service.id) }}" style="display:inline;">
+        <button type="submit" class="btn btn-danger btn-sm">Delete Service</button>
+    </form>
   </div>
 </article>
 {% endfor %}
@@ -103,9 +114,9 @@
 </form>
 
 <h3>Existing Categories</h3>
-<ul>
+<ul style="display: flex; flex-wrap: wrap; gap: 10px;">
     {% for category in categories %}
-        <li>
+        <li style="list-style: none;">
             {{ category.name }}
             <form method="POST" action="{{ url_for('delete_category', category_id=category.id) }}" style="display:inline;">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>

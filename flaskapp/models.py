@@ -132,6 +132,28 @@ class Notification(db.Model):
     def __repr__(self):
         return f"Notification('{self.id}', '{self.message}', '{self.date_posted}')"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def create_dummy_data():
     from flaskapp import db
     from flaskapp.models import User, ServiceProvider, Service, Order, Category, Complaint, Notification

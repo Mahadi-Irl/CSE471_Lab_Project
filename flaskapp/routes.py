@@ -798,3 +798,33 @@ def create_data():
     create_dummy_data()
     flash('Dummy data created successfully!', 'success')
     return redirect(url_for('home'))
+
+@app.route("/make_admin/<int:user_id>", methods=['POST'])
+@login_required
+@admin_required
+def make_admin(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_admin = True
+    db.session.commit()
+    flash('User has been made an admin.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/delete_user/<int:user_id>", methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User has been deleted.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/delete_service/<int:service_id>", methods=['POST'])
+@login_required
+@admin_required
+def delete_service(service_id):
+    service = Service.query.get_or_404(service_id)
+    db.session.delete(service)
+    db.session.commit()
+    flash('Service has been deleted.', 'success')
+    return redirect(url_for('admin_dashboard'))
