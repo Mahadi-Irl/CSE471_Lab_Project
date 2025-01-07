@@ -6,7 +6,14 @@
         <ul>
             {% for review in reviews %}
             <li>
-                <p><strong>Rating:</strong> {{ review.rate }} / 5</p>
+                <p>
+                    <strong>Rating:</strong> 
+                    {% if review.rate == 5 %}
+                    <strong style="color: red;">{{ review.rate }} / 5</strong>
+                    {% else %}
+                    {{ review.rate }} / 5
+                    {% endif %}
+                </p>
                 <p><strong>Review:</strong> {{ review.review }}</p>
                 <p><strong>Customer:</strong> {{ review.customer }}</p>
             </li>

@@ -104,6 +104,7 @@ class Order(db.Model):
     
     review = db.Column(db.String(500), nullable=True)  
     rate = db.Column(db.Float, nullable=True)  
+    #complain = db.Column(db.String(500), nullable=True)
     
     service = db.relationship('Service', backref='linked_orders', lazy=True)
     def __repr__(self):
